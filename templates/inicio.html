@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Ícone da aba -->
+    <link rel="icon" href="{{ url_for('static', filename='imagens/logo.png') }}" type="image/png">
+    <title>INICIO - PAINEL</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome para os ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+      body {
+        padding-top: 70px; /* Espaço para a navbar fixa */
+        background-color: #1e1e1e;
+        color: #fff;
+        text-align: center;
+      }
+
+      /* Botões das redes sociais */
+      .social-btn {
+        display: inline-block;
+        margin: 15px;
+        padding: 15px 25px;
+        border-radius: 10px;
+        font-size: 20px;
+        color: white;
+        text-decoration: none;
+        transition: all 0.3s ease;
+      }
+
+      .social-btn i {
+        margin-right: 10px;
+      }
+
+      .social-btn.instagram { background: #E1306C; }
+      .social-btn.discord { background: #5865F2; }
+      .social-btn.telegram { background: #0088cc; }
+
+      .social-btn:hover {
+        opacity: 0.8;
+        transform: translateY(-3px);
+      }
+    </style>
+  </head>
+  <body class="bg-dark text-light">
+
+    <!-- Navbar fixa no topo -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+      <div class="container">
+        <a class="navbar-brand" href="/Home">Planilha - Web</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link btn-nav" href="/Home">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link btn-nav" href="/calculadora">Calculadora</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link btn-nav" href="/planilha-sig">Acesso Privado</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+  <!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bem-vindo</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+      /* Centraliza todo o bloco */
+      .social-central {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 80vh; /* ocupa quase toda a tela */
+        text-align: center;
+      }
+
+      /* Espaço entre título e botões */
+      .social-central h1 {
+        margin-bottom: 40px;
+        font-size: 2rem;
+        color: #fff;
+      }
+
+      /* Grupo de botões */
+      .social-btn-group {
+        display: flex;
+        gap: 20px; /* espaço entre os botões */
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      /* Estilo base dos botões */
+      .btn-social {
+        display: flex;
+        align-items: center;
+        gap: 8px; /* espaço entre ícone e texto */
+        background-color: #00bfff;
+        color: #fff;
+        padding: 12px 25px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
+
+      /* Efeito hover */
+      .btn-social:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(0,0,0,0.4);
+      }
+
+      /* Estilo individual por rede social */
+      .insta-btn { background-color: #E1306C; }
+      .insta-btn:hover { background-color: #C1275B; }
+
+      .discord-btn { background-color: #5865F2; }
+      .discord-btn:hover { background-color: #4752C4; }
+
+      .telegram-btn { background-color: #0088cc; }
+      .telegram-btn:hover { background-color: #006699; }
+
+      /* Fundo da página */
+      body {
+        background-color: #1e1e1e;
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="social-central">
+      <h1>Bem-vindo Ao Painel Da Planilha do RDM,<br><br>
+      Aqui Você Irá Ver O Relatorio Mensal e Anual!</h1>
+
+      <div class="social-btn-group">
+        <a href="https://www.instagram.com/rianzx.fxp?igsh=aXVsM3djc29wNjNn" target="_blank" class="btn-social insta-btn">
+          <i class="fab fa-instagram"></i> Instagram
+        </a>
+        <a href="https://discord.com/channels/@me/892207735599411260" target="_blank" class="btn-social discord-btn">
+          <i class="fab fa-discord"></i> Discord
+        </a>
+        <a href="https://t.me/RianZxTr3M" target="_blank" class="btn-social telegram-btn">
+          <i class="fab fa-telegram"></i> Telegram
+        </a>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

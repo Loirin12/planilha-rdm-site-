@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+    <link rel="icon" href="{{ url_for('static', filename='imagens/logo.png') }}" type="image/png">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOGIN - PLANILHA</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #121212;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            padding: 10px; /* evita que fique colado nas bordas em telas pequenas */
+        }
+
+        .login-container {
+            background-color: #1e1e1e;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
+            width: 100%;
+            max-width: 400px; /* limita a largura máxima em PCs */
+            text-align: center;
+        }
+
+        .login-container h2 {
+            margin-bottom: 30px;
+            color: #90caf9;
+        }
+
+        .login-container input[type="text"],
+        .login-container input[type="password"] {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background-color: #2c2c2c;
+            color: #fff;
+            transition: 0.3s;
+            font-size: 16px;
+        }
+
+        .login-container input:focus {
+            border-color: #90caf9;
+            outline: none;
+        }
+
+        .login-container button {
+            width: 100%;
+            padding: 12px;
+            background-color: #90caf9;
+            border: none;
+            border-radius: 8px;
+            color: #1e1e1e;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: 0.3s;
+        }
+
+        .login-container button:hover {
+            background-color: #64b5f6;
+        }
+
+        .flash {
+            color: #f44336;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        /* Botão menor e discreto */
+        .btn-home22 {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 12px;
+            background-color: #333;
+            color: #90caf9;
+            border-radius: 6px;
+            font-size: 13px;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .btn-home22:hover {
+            background-color: #444;
+            color: #64b5f6;
+        }
+
+        /* ---------- MEDIA QUERIES ---------- */
+        @media (max-width: 500px) {
+            .login-container {
+                padding: 30px 20px;
+            }
+
+            .login-container h2 {
+                font-size: 22px;
+                margin-bottom: 20px;
+            }
+
+            .login-container input[type="text"],
+            .login-container input[type="password"] {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .login-container button {
+                padding: 10px;
+                font-size: 15px;
+            }
+
+            .btn-home22 {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    
+<div class="login-container">
+    <h2>Login</h2>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash">
+            {% for msg in messages %}
+                {{ msg }}
+            {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="post">
+        <input type="text" name="usuario" placeholder="Usuário" required>
+        <input type="password" name="senha" placeholder="Senha" required>
+        <button type="submit">Entrar</button>
+    </form>
+
+    <!-- Botão de voltar para home -->
+    <a href="{{ url_for('home') }}" class="btn-home22">Voltar para Home</a>
+</div>
+
+</body>
+</html>

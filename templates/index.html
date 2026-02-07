@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <link rel="icon" href="{{ url_for('static', filename='imagens/logo.png') }}" type="image/png">
+
+  <title>
+    {% if tipo == 'sig' %}Planilha SIG{% else %}Planilha SSH{% endif %}
+  </title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="bg-dark text-light">
+<div class="container py-4">
+
+  <!-- ABAS -->
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <a class="nav-link {% if tipo == 'sig' %}active{% endif %}" href="{{ url_for('planilha_sig') }}">Planilha SIG</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if tipo == 'ssh' %}active{% endif %}" href="{{ url_for('planilha_ssh') }}">Planilha SSH</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('resumo') }}">Resumo P&R</a>
+    </li>
+  </ul>
+
+  <!-- ALERTA -->
+  <div id="alerta" class="alert alert-success d-none mt-3"></div>
+
+  <!-- TÍTULO -->
+  <div class="text-center mb-3">
+    {% if tipo == 'sig' %}
+      <h3 class="fw-bold text-primary">PLANILHA SIG</h3>
+    {% else %}
+      <h3 class="fw-bold" style="color:#b85cff;">PLANILHA SSH</h3>
+    {% endif %}
+  </div>
+
+  <!-- FORM -->
+  <div class="row g-2 align-items-end mt-3">
+
+    <div class="col-md-4">
+      <label class="form-label text-center w-100">Mês</label>
+      <select id="mes" class="form-select"></select>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label text-center w-100">Dia</label>
+      <select id="dia" class="form-select"></select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label text-center w-100">P&R</label>
+      <input id="pr" class="form-control" />
+    </div>
+
+    {% if tipo == 'sig' %}
+    <div class="col-md-3">
+      <label class="form-label text-center w-100">EMBAIXADOR</label>
+      <input id="emb" class="form-control" />
+    </div>
+
+    <div class="col-md-3 mt-2">
+      <label class="form-label text-center w-100">CSS</label>
+      <input id="css" class="form-control" />
+    </div>
+
+    <div class="col-md-3 mt-2">
+      <label class="form-label text-center w-100">% CSS</label>
+      <input id="percent_css" class="form-control" placeholder="Ex: 100" />
+    </div>
+    {% endif %}
+
+    <div class="col-12 mt-3">
+      <button id="salvar" class="btn btn-primary">Salvar / Atualizar</button>
+    </div>
+  </div>
+
+  <!-- TABELA -->
+  <div class="mt-4">
+    <table class="table table-dark table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>DATA</th>
+          <th>P&R</th>
+          {% if tipo == 'sig' %}
+            <th>EMBAIXADOR</th>
+            <th>CSS</th>
+            <th>% CSS</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="col-12 mt-2 d-flex gap-2">
+  <button id="diaAnterior" class="btn btn-secondary btn-sm">
+    ⬅ Dia anterior
+  </button>
+
+  <button id="diaSeguinte" class="btn btn-secondary btn-sm">
+    Dia seguinte ➡
+  </button>
+</div>
+
+</div>
+
+<script>
+const TIPO = "{{ tipo }}";
+
+/* ================= ALERTA ================= */
+function mostrarAlerta(msg){
+  const a = document.getElementById('alerta');
+  a.textContent = msg;
+  a.classList.remove('d-none');
+  setTimeout(()=>a.classList.add('d-none'),3000);
+}
+
+/* ================= MESES ================= */
+async function carregarMeses(){
+  const res = await fetch('/api/meses');
+  const meses = await res.json();
+
+  const sel = document.getElementById('mes');
+  sel.innerHTML = '<option value="">Selecione</option>';
+
+  meses.forEach(m=>{
+    sel.innerHTML += `<option value="${m}">${m}</option>`;
+  });
+}
+
+/* ================= DIAS ================= */
+async function carregarDias(){
+  const mes = document.getElementById('mes').value;
+  const sel = document.getElementById('dia');
+  sel.innerHTML = '<option value="">Selecione</option>';
+
+  if(!mes || mes === 'TOTAL GERAL') return;
+
+  const res = await fetch(`/api/dias?mes=${mes}`);
+  const dias = await res.json();
+
+  dias.forEach(d=>{
+    sel.innerHTML += `<option value="${d}">${d}</option>`;
+  });
+}
+
+/* ================= TABELA ================= */
+async function carregarTabela(){
+  const mes = document.getElementById('mes').value;
+  if(!mes) return;
+
+  let url;
+  if(mes === 'TOTAL GERAL'){
+    url = `/api/mes-total-geral?tipo=${TIPO}`;
+  } else {
+    url = `/api/tabela?mes=${mes}&tipo=${TIPO}`;
+  }
+
+  const res = await fetch(url);
+  const dados = await res.json();
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+
+  dados.forEach(l=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${l.id ?? ''}</td>
+      <td>${l.data ?? ''}</td>
+      <td>${l.pr ?? ''}</td>
+      ${TIPO === 'sig'
+        ? `<td>${l.emb ?? ''}</td>
+           <td>${l.css ?? ''}</td>
+           <td>${l.percent_css ? l.percent_css + '%' : ''}</td>`
+        : ''}
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ================= DIA ================= */
+async function carregarDiaSelecionado(){
+  const mes = document.getElementById('mes').value;
+  const dia = document.getElementById('dia').value;
+
+  if(!mes || !dia || mes === 'TOTAL GERAL') return;
+
+  const res = await fetch(`/api/tabela?mes=${mes}&tipo=${TIPO}`);
+  const dados = await res.json();
+
+  const linha = dados.find(l => Number(l.id) === Number(dia));
+
+  if(!linha){
+    document.getElementById('pr').value = '';
+    if(TIPO === 'sig'){
+      document.getElementById('emb').value = '';
+      document.getElementById('css').value = '';
+      document.getElementById('percent_css').value = '';
+    }
+    return;
+  }
+
+  document.getElementById('pr').value = linha.pr ?? '';
+
+  if(TIPO === 'sig'){
+    document.getElementById('emb').value = linha.emb ?? '';
+    document.getElementById('css').value = linha.css ?? '';
+    document.getElementById('percent_css').value = linha.percent_css ?? '';
+  }
+}
+
+/* ================= EVENTOS ================= */
+document.getElementById('mes').addEventListener('change', async ()=>{
+  await carregarDias();
+  await carregarTabela();
+});
+
+document.getElementById('dia').addEventListener('change', carregarDiaSelecionado);
+
+document.getElementById('salvar').onclick = async ()=>{
+  const payload = {
+    mes: document.getElementById('mes').value,
+    dia: document.getElementById('dia').value,
+    pr: document.getElementById('pr').value,
+    tipo: TIPO
+  };
+
+  if(TIPO === 'sig'){
+    payload.emb = document.getElementById('emb').value;
+    payload.css = document.getElementById('css').value;
+    payload.percent_css = document.getElementById('percent_css').value;
+  }
+
+  await fetch('/api/salvar',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+
+  mostrarAlerta('Dados salvos / atualizados com sucesso!');
+  await carregarTabela();
+};
+
+function mudarDia(delta){
+  const diaSelect = document.getElementById('dia');
+  const mes = document.getElementById('mes').value;
+
+  if(!mes || mes === 'TOTAL GERAL') return;
+
+  let diaAtual = Number(diaSelect.value);
+  if(!diaAtual) return;
+
+  const novoDia = diaAtual + delta;
+
+  // verifica limites
+  if(novoDia < 1 || novoDia > diaSelect.options.length - 1) return;
+
+  diaSelect.value = novoDia;
+  carregarDiaSelecionado();
+}
+
+document.getElementById('diaAnterior').addEventListener('click', () => {
+  mudarDia(-1);
+});
+
+document.getElementById('diaSeguinte').addEventListener('click', () => {
+  mudarDia(1);
+});
+
+
+/* ================= INIT ================= */
+carregarMeses();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

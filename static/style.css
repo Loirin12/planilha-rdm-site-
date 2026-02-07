@@ -1,0 +1,216 @@
+body {
+    background: #1e1e1e;
+    color: #fff;
+    padding-top: 70px; /* espaço para navbar fixa */
+}
+
+
+  .titulo-planilha {
+    animation: aparecer 0.6s ease-out;
+  }
+
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .sig {
+    color: #0d6efd; /* azul bootstrap */
+  }
+
+  .ssh {
+    color: #b85cff; /* roxo */
+  }
+
+.table thead th {
+    border-bottom: 2px solid #333;
+}
+
+/* Aplica para todas as colunas da tabela */
+table, th, td {
+    border: 1px solid #ddd;
+    text-align: center; /* centraliza todo o conteúdo */
+    padding: 8px;
+}
+
+/* Cabeçalho centralizado também */
+th {
+    background-color: #3a3a3a;
+    color: white;
+    text-align: center;
+}
+
+/* Força MÊS e DIA ficarem na linha de cima */
+.row.g-2 .col-md-4,
+.row.g-2 .col-md-2 {
+    display: block;
+    width: 49%;
+}
+
+/* Força P&R, Embaixador e CSS ficarem na linha de baixo */
+.row.g-2 .col-md-3 {
+    display: inline-block;
+    width: 33%;   /* ajusta para caber lado a lado */
+}
+
+/* Navbar links */
+.navbar-nav .nav-link {
+    color: #fff;            /* cor padrão branca */
+    font-weight: 500;
+    margin-left: 15px;
+    transition: all 0.3s;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #00bfff;         /* muda para azul claro ao passar o mouse */
+    text-decoration: underline;
+}
+
+/* Navbar brand */
+.navbar-brand {
+    font-weight: 700;
+    color: #00bfff !important;
+}
+
+/* Botões da navbar */
+.btn-nav {
+    background-color: #00bfff;  /* cor do botão */
+    color: #fff;                 /* cor do texto */
+    border-radius: 12px;         /* cantos arredondados */
+    padding: 8px 20px;
+    font-weight: 600;
+    text-decoration: none;       /* remove sublinhado */
+    transition: all 0.3s ease;
+    margin-left: 10px;
+    display: inline-block;
+}
+
+/* Efeito hover */
+.btn-nav:hover {
+    background-color: #009acd;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.4);
+    color: #fff;
+}
+
+/* Corpo centralizado vertical e horizontal */
+.social-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background-color: #1e1e1e;
+    color: #fff;
+}
+
+.social-page h1 {
+    margin-bottom: 40px;
+    font-size: 2rem;
+}
+
+/* Container dos botões */
+.social-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+/* Botões */
+.social-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 15px 25px;
+    border-radius: 12px;
+    font-size: 18px;
+    color: #fff;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+/* Centraliza vertical e horizontalmente */
+.social-page {
+    height: 100vh; /* ocupa a tela toda */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: #fff; /* cor do texto */
+}
+
+/* Espaçamento entre título e botões */
+.social-page h1 {
+    margin-bottom: 30px;
+    font-size: 2rem;
+}
+
+/* Container dos botões */
+.social-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px; /* espaço entre os botões */
+}
+
+.central-social {
+  height: calc(100vh - 70px); /* altura total da tela menos navbar */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: #fff;
+}
+
+.central-social h1 {
+  margin-bottom: 30px;
+  font-size: 2rem;
+}
+
+/* Container dos botões */
+.central-buttons {
+  display: flex;
+  gap: 15px;
+}
+
+/* Botões das redes sociais */
+.social-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+/* Cores individuais */
+.social-btn.instagram { background-color: #E1306C; }
+.social-btn.discord   { background-color: #5865F2; }
+.social-btn.telegram  { background-color: #0088cc; }
+
+/* Hover */
+.social-btn:hover {
+  opacity: 0.85;
+  transform: translateY(-2px);
+}
+
+/* 🚫 TABELA TOTALMENTE VISUAL */
+#tabela {
+  user-select: none;
+}
+
+#tabela td,
+#tabela th {
+  cursor: default !important;
+}
+
+
