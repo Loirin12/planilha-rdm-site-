@@ -178,70 +178,75 @@ def api_dias():
 
 # ================= ATUALIZAR TOTAL GERAL NO EXCEL =================
 def atualizar_total_geral_excel():
-
     MESES_VALIDOS = [
-        ('JANEIRO', 1), ('FEVEREIRO', 2), ('MARÇO', 3), ('ABRIL', 4),
-        ('MAIO', 5), ('JUNHO', 6), ('JULHO', 7), ('AGOSTO', 8),
-        ('SETEMBRO', 9), ('OUTUBRO', 10), ('NOVEMBRO', 11), ('DEZEMBRO', 12)
+        'JANEIRO','FEVEREIRO','MARÇO','ABRIL',
+        'MAIO','JUNHO','JULHO','AGOSTO',
+        'SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'
     ]
 
-    wb = load_workbook(ARQUIVO_SIG, data_only=True)
+    # 🚀 MODO RÁPIDO
+    wb = load_workbook(ARQUIVO_SIG, read_only=True, data_only=True)
 
-    # cria ou limpa a aba TOTAL GERAL
-    if 'TOTAL GERAL' in wb.sheetnames:
-        ws = wb['TOTAL GERAL']
-        ws.delete_rows(1, ws.max_row)
-    else:
-        ws = wb.create_sheet('TOTAL GERAL')
-
-    # cabeçalho (colunas corretas)
-    ws['A1'] = 'MÊS'
-    ws['C1'] = 'P&R'
-    ws['F1'] = 'CSS'
-    ws['G1'] = '% CSS'
-
-    linha = 2
+    totais = []
     total_pr_anual = 0
     total_css_anual = 0
-    total_percent_mes = 0
-    total_percent_anual = 0
+    soma_css_peso_anual = 0
 
-
-    for mes, _ in MESES_VALIDOS:
+    for mes in MESES_VALIDOS:
         if mes not in wb.sheetnames:
             continue
 
-        ws_mes = wb[mes]
-        total_pr_mes = 0
-        total_css_mes = 0
+        ws = wb[mes]
 
-        for r in range(2, ws_mes.max_row + 1):
-            pr = ws_mes.cell(row=r, column=3).value   # P&R
-            css = ws_mes.cell(row=r, column=6).value  # CSS
+        total_pr_mes = 0
+        soma_css_mes = 0
+        soma_css_peso_mes = 0
+
+        # ⚡ MUITO MAIS RÁPIDO que ws.cell()
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            pr = row[2]   # Coluna C
+            css = row[5]  # Coluna F
+            percent = row[6]  # Coluna G
 
             if pr not in (None, ''):
-                total_pr_mes += float(str(pr).replace(',', '.'))
-            if css not in (None, ''):
-                total_css_mes += float(str(css).replace(',', '.'))
+                try:
+                    total_pr_mes += float(pr)
+                except:
+                    pass
 
-        # 👉 grava no lugar CERTO
-        ws.cell(row=linha, column=1, value=mes)                 # A = MÊS
-        ws.cell(row=linha, column=3, value=int(total_pr_mes))   # C = P&R
-        ws.cell(row=linha, column=6, value=int(total_css_mes))  # F = CSS
+            if css not in (None, '') and percent not in (None, ''):
+                try:
+                    css = float(css)
+                    percent = float(percent)
+
+                    if css > 0:
+                        soma_css_mes += css
+                        soma_css_peso_mes += css * percent
+                except:
+                    pass
+
+        media_percent = (
+            round(soma_css_peso_mes / soma_css_mes, 1)
+            if soma_css_mes > 0 else 0
+        )
+
+        totais.append({
+            'mes': mes,
+            'pr': int(total_pr_mes),
+            'css': int(soma_css_mes),
+            'percent': media_percent
+        })
 
         total_pr_anual += total_pr_mes
-        total_css_anual += total_css_mes
-        linha += 1
+        total_css_anual += soma_css_mes
+        soma_css_peso_anual += soma_css_peso_mes
 
-        percent = ws_mes.cell(row=r, column=7).value
-        if percent not in (None, ''):
-            total_percent_mes += float(str(percent).replace(',', '.'))
-   
-        ws.cell(row=linha, column=7, value=total_percent_mes)
-    total_percent_anual += total_percent_mes
+    media_anual = (
+        round(soma_css_peso_anual / total_css_anual, 1)
+        if total_css_anual > 0 else 0
+    )
 
-    ws.cell(row=linha, column=7, value=total_percent_anual)
-
+    return totais, int(total_pr_anual), int(total_css_anual), media_anual
 
 
     # 🔥 TOTAL ANUAL (ÚLTIMA LINHA)
@@ -256,58 +261,64 @@ def atualizar_total_geral_excel():
 @app.route('/api/salvar', methods=['POST'])
 @login_required
 def api_salvar():
-    data = request.json
-    mes = data.get('mes')
-    dia = int(data.get('dia'))
-    pr = data.get('pr')
-    emb = data.get('emb')
-    css = data.get('css')
-    tipo = data.get('tipo')
-    percent_css = data.get('percent_css')
+    try:
+        data = request.json
+        mes = data.get('mes')
+        dia = int(data.get('dia'))
+        pr = data.get('pr')
+        emb = data.get('emb')
+        css = data.get('css')
+        tipo = data.get('tipo')
+        percent_css = data.get('percent_css')
 
+        # 🚫 BLOQUEIO TOTAL
+        if mes and mes.upper() == 'TOTAL GERAL':
+            return jsonify({'error': 'TOTAL GERAL não pode ser editado'}), 403
 
+        arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
+        garantir_aba(arquivo, mes, tipo)
 
-    # 🚫 BLOQUEIO TOTAL
-    if mes and mes.upper() == 'TOTAL GERAL':
-        return jsonify({'error': 'TOTAL GERAL não pode ser editado'}), 403
+        wb = load_workbook(arquivo)
+        ws = wb[mes.upper()]
 
-    arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
-    garantir_aba(arquivo, mes, tipo)
+        # P&R → coluna C
+        if pr not in (None, ''):
+            ws.cell(
+                row=dia+1,
+                column=3,
+                value=float(str(pr).replace(',', '.'))
+            )
 
-    wb = load_workbook(arquivo)
-    ws = wb[mes.upper()]
-
-    if pr not in (None, ''):
-        ws.cell(row=dia+1, column=3, value=float(str(pr).replace(',', '.')))
-
-   # CSS → coluna F (6) 
-   
-    if css not in (None, ''):  
+        # 🔥 EMBAIXADOR → coluna D (AGORA VAI SALVAR)
         ws.cell(
-        row=dia+1,
-        column=6,
-        value=float(str(css).replace(',', '.'))
-    )
+            row=dia+1,
+            column=4,
+            value=emb if emb else ''
+        )
 
-# % CSS → coluna G (7)
-    if percent_css not in (None, ''):
-        ws.cell(
-        row=dia+1,
-        column=7,
-        value=float(str(percent_css).replace(',', '.'))
-    )
+        # CSS → coluna F
+        if css not in (None, ''):
+            ws.cell(
+                row=dia+1,
+                column=6,
+                value=float(str(css).replace(',', '.'))
+            )
 
+        # % CSS → coluna G
+        if percent_css not in (None, ''):
+            ws.cell(
+                row=dia+1,
+                column=7,
+                value=float(str(percent_css).replace(',', '.'))
+            )
 
-   
+        wb.save(arquivo)
 
+        return jsonify({'ok': True})
 
-     
-    wb.save(arquivo)
-
-    # 🔥 ATUALIZA A ABA TOTAL GERAL NO EXCEL
-    atualizar_total_geral_excel()
-
-    return jsonify({'ok': True})
+    except Exception as e:
+        print("ERRO AO SALVAR:", str(e))  # 🔥 vai aparecer no log do Render
+        return jsonify({'error': str(e)}), 500
 
 
 # ================= API TABELA =================
@@ -409,9 +420,14 @@ def resumo():
 @app.route('/api/mes-total-geral')
 @login_required
 def api_mes_total_geral():
+    global cache_total_geral
 
     tipo = request.args.get('tipo')
     arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
+
+    # ⚡ Se já tem cache, retorna instantâneo
+    if cache_total_geral["dados"] is not None:
+        return jsonify(cache_total_geral["dados"])
 
     if not os.path.exists(arquivo):
         return jsonify([])
@@ -422,9 +438,8 @@ def api_mes_total_geral():
         'SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'
     ]
 
-    wb = load_workbook(arquivo, data_only=True)
-    abas = {s.upper(): s for s in wb.sheetnames}
-
+    # 🚀 MODO RÁPIDO PARA RENDER
+    wb = load_workbook(arquivo, read_only=True, data_only=True)
     resultado = []
 
     total_pr_anual = 0
@@ -432,46 +447,33 @@ def api_mes_total_geral():
     soma_css_anual = 0
 
     for mes in MESES_ORDEM:
-
-        # 🔒 garante que a aba exista
-        garantir_aba(arquivo, mes, tipo)
-
-        if mes not in abas:
-            resultado.append({
-                'id': '',
-                'data': mes,
-                'pr': 0,
-                'css': 0,
-                'percent_css': 0
-            })
+        if mes not in wb.sheetnames:
             continue
 
-        ws = wb[abas[mes]]
+        ws = wb[mes]
 
         total_pr_mes = 0
-        soma_css_peso_mes = 0
         soma_css_mes = 0
+        soma_css_peso_mes = 0
 
-        for r in range(2, ws.max_row + 1):
+        # ⚡ 10x mais rápido que ws.cell()
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            pr = row[2]
+            css = row[5]
+            percent = row[6]
 
-            # P&R
-            pr = ws.cell(row=r, column=3).value
-            if pr not in (None, ''):
+            if pr:
                 try:
-                    total_pr_mes += float(str(pr).replace(',', '.'))
+                    total_pr_mes += float(pr)
                 except:
                     pass
 
-            # CSS (peso) + % CSS (valor)
-            css = ws.cell(row=r, column=6).value
-            percent = ws.cell(row=r, column=7).value
-
-            if css not in (None, '') and percent not in (None, ''):
+            if css and percent:
                 try:
-                    css = float(str(css).replace(',', '.'))
-                    percent = float(str(percent).replace(',', '.'))
+                    css = float(css)
+                    percent = float(percent)
 
-                    if css > 0 and percent > 0:
+                    if css > 0:
                         soma_css_mes += css
                         soma_css_peso_mes += css * percent
                 except:
@@ -507,6 +509,9 @@ def api_mes_total_geral():
         'percent_css': media_percent_anual
     })
 
+    # 🔥 SALVA NO CACHE (agora fica instantâneo)
+    cache_total_geral["dados"] = resultado
+
     return jsonify(resultado)
 
 # ================= OUTRAS =================
@@ -533,3 +538,4 @@ def index():
 # ================= RUN =================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
