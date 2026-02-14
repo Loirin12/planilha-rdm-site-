@@ -420,14 +420,9 @@ def resumo():
 @app.route('/api/mes-total-geral')
 @login_required
 def api_mes_total_geral():
-    global cache_total_geral
 
     tipo = request.args.get('tipo')
     arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
-
-    # ⚡ Se já tem cache, retorna instantâneo
-    if cache_total_geral["dados"] is not None:
-        return jsonify(cache_total_geral["dados"])
 
     if not os.path.exists(arquivo):
         return jsonify([])
@@ -438,81 +433,87 @@ def api_mes_total_geral():
         'SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'
     ]
 
-    # 🚀 MODO RÁPIDO PARA RENDER
-    wb = load_workbook(arquivo, read_only=True, data_only=True)
-    resultado = []
+    try:
+        wb = load_workbook(arquivo, read_only=True, data_only=True)
+        resultado = []
 
-    total_pr_anual = 0
-    soma_css_peso_anual = 0
-    soma_css_anual = 0
+        total_pr_anual = 0
+        total_css_anual = 0
+        soma_css_peso_anual = 0
 
-    for mes in MESES_ORDEM:
-        if mes not in wb.sheetnames:
-            continue
+        for mes in MESES_ORDEM:
+            if mes not in wb.sheetnames:
+                continue
 
-        ws = wb[mes]
+            ws = wb[mes]
 
-        total_pr_mes = 0
-        soma_css_mes = 0
-        soma_css_peso_mes = 0
+            total_pr_mes = 0
+            soma_css_mes = 0
+            soma_css_peso_mes = 0
 
-        # ⚡ 10x mais rápido que ws.cell()
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            pr = row[2]
-            css = row[5]
-            percent = row[6]
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                pr = row[2] if len(row) > 2 else None
+                css = row[5] if len(row) > 5 else None
+                percent = row[6] if len(row) > 6 else None
 
-            if pr:
-                try:
-                    total_pr_mes += float(pr)
-                except:
-                    pass
+                # P&R (funciona para SIG e SSH)
+                if pr not in (None, ''):
+                    try:
+                        total_pr_mes += float(pr)
+                    except:
+                        pass
 
-            if css and percent:
-                try:
-                    css = float(css)
-                    percent = float(percent)
+                # 🔥 CSS só existe no SIG (evita erro no SSH)
+                if tipo == 'sig' and css and percent:
+                    try:
+                        css = float(css)
+                        percent = float(percent)
 
-                    if css > 0:
-                        soma_css_mes += css
-                        soma_css_peso_mes += css * percent
-                except:
-                    pass
+                        if css > 0:
+                            soma_css_mes += css
+                            soma_css_peso_mes += css * percent
+                    except:
+                        pass
 
-        media_percent_mes = (
-            round(soma_css_peso_mes / soma_css_mes, 1)
-            if soma_css_mes > 0 else 0
-        )
+            # Percentual só para SIG
+            if tipo == 'sig' and soma_css_mes > 0:
+                media_percent_mes = round(soma_css_peso_mes / soma_css_mes, 1)
+            else:
+                media_percent_mes = 0
+
+            resultado.append({
+                'id': '',
+                'data': mes,
+                'pr': int(total_pr_mes),
+                'css': int(soma_css_mes) if tipo == 'sig' else 0,
+                'percent_css': media_percent_mes
+            })
+
+            total_pr_anual += total_pr_mes
+            if tipo == 'sig':
+                total_css_anual += soma_css_mes
+                soma_css_peso_anual += soma_css_peso_mes
+
+        # TOTAL GERAL
+        if tipo == 'sig' and total_css_anual > 0:
+            media_anual = round(soma_css_peso_anual / total_css_anual, 1)
+        else:
+            media_anual = 0
 
         resultado.append({
             'id': '',
-            'data': mes,
-            'pr': int(total_pr_mes),
-            'css': int(soma_css_mes),
-            'percent_css': media_percent_mes
+            'data': 'TOTAL GERAL',
+            'pr': int(total_pr_anual),
+            'css': int(total_css_anual) if tipo == 'sig' else 0,
+            'percent_css': media_anual
         })
 
-        total_pr_anual += total_pr_mes
-        soma_css_anual += soma_css_mes
-        soma_css_peso_anual += soma_css_peso_mes
+        return jsonify(resultado)
 
-    media_percent_anual = (
-        round(soma_css_peso_anual / soma_css_anual, 1)
-        if soma_css_anual > 0 else 0
-    )
+    except Exception as e:
+        print("ERRO TOTAL GERAL:", str(e))
+        return jsonify([]), 500
 
-    resultado.append({
-        'id': '',
-        'data': 'TOTAL GERAL',
-        'pr': int(total_pr_anual),
-        'css': int(soma_css_anual),
-        'percent_css': media_percent_anual
-    })
-
-    # 🔥 SALVA NO CACHE (agora fica instantâneo)
-    cache_total_geral["dados"] = resultado
-
-    return jsonify(resultado)
 
 # ================= OUTRAS =================
 @app.route('/calculadora')
