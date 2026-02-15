@@ -326,63 +326,29 @@ def api_salvar():
 
         arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
 
-        # 🔥 CORREÇÕES CRÍTICAS (FALTAVAM)
+        # 🔥 GARANTE QUE O ARQUIVO E ABA EXISTEM
         garantir_arquivo(arquivo)
         garantir_aba(arquivo, mes, tipo)
 
         wb = load_workbook(arquivo)
-
-
-       arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
-
-      # 🔥 GARANTE QUE O ARQUIVO EXISTE NO /data
-        garantir_arquivo(arquivo)
-
-        wb = load_workbook(arquivo)
-
-
-        # 🔥 PEGA SOMENTE ABA SEM NÚMERO (EX: FEVEREIRO)
-        aba_correta = None
-
-        for sheet in wb.sheetnames:
-            nome = sheet.strip()
-            nome_upper = nome.upper()
-
-            # tem que ser o mês
-            if not nome_upper.startswith(mes):
-                continue
-
-            # ignora abas com número (MAIO5, JUNHO6, etc)
-            if any(c.isdigit() for c in nome_upper):
-                continue
-
-            aba_correta = sheet
-            break
-
-        if not aba_correta:
-            return jsonify({
-                'error': f'Aba "{mes}" sem número não encontrada',
-                'abas': wb.sheetnames
-            }), 400
-
-        ws = wb[aba_correta]
+        ws = wb[mes]
 
         linha = dia + 1  # linha 2 = dia 1
 
-        # P&R → Coluna C (3)
+        # P&R → Coluna C
         if pr not in (None, ''):
             ws.cell(row=linha, column=3,
                     value=float(str(pr).replace(',', '.')))
 
-        # EMBAIXADOR → Coluna D (4)
+        # EMBAIXADOR → Coluna D
         ws.cell(row=linha, column=4, value=emb if emb else '')
 
-        # CSS → Coluna F (6)
+        # CSS → Coluna F
         if css not in (None, ''):
             ws.cell(row=linha, column=6,
                     value=float(str(css).replace(',', '.')))
 
-        # % CSS → Coluna G (7)
+        # % CSS → Coluna G
         if percent_css not in (None, ''):
             ws.cell(row=linha, column=7,
                     value=float(str(percent_css).replace(',', '.')))
@@ -390,14 +356,11 @@ def api_salvar():
         wb.save(arquivo)
         wb.close()
 
-        print(f"[SALVO NA ABA SEM NÚMERO]: {aba_correta}")
-
-        return jsonify({'ok': True, 'aba_usada': aba_correta})
+        return jsonify({'ok': True})
 
     except Exception as e:
         print("ERRO AO SALVAR:", str(e))
         return jsonify({'error': str(e)}), 500
-
 
 
 # ================= API TABELA =================
