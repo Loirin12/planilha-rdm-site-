@@ -1,18 +1,15 @@
 async function q(url, opts){
-  try{
-    const r = await fetch(url, opts);
-    if(!r.ok) throw new Error(`Erro HTTP: ${r.status}`);
-    return await r.json();
-  }catch(e){
-    console.error('Erro na requisição:', url, e);
-    return [];
-  }
+  const r = await fetch(url, opts);
+  if(!r.ok) throw r;
+  return r.json();
 }
+
+let cacheTabela = []; // 🔥 cache para evitar múltiplos fetch pesados
 
 /* ================= CONTROLE DE EDIÇÃO ================= */
 function controlarEdicao(){
-  const mes = document.getElementById('mes')?.value;
-  const dia = document.getElementById('dia')?.value;
+  const mes = document.getElementById('mes').value;
+  const dia = document.getElementById('dia').value;
 
   const campos = [
     document.getElementById('pr'),
@@ -27,33 +24,26 @@ function controlarEdicao(){
       c.value = '';
       c.disabled = true;
     });
-    if(btnSalvar) btnSalvar.disabled = true;
+    btnSalvar.disabled = true;
     return;
   }
 
   campos.forEach(c => c.disabled = false);
-  if(btnSalvar) btnSalvar.disabled = false;
+  btnSalvar.disabled = false;
 }
 
-/* ================= MESES (ANTI-LOOP) ================= */
-let mesesCarregados = false;
-
+/* ================= MESES (SEM LOOP) ================= */
 async function carregarMeses(){
-  if(mesesCarregados) return; // 🔥 evita loop de carregamento
-  mesesCarregados = true;
-
   const meses = await q('/api/meses');
   const sel = document.getElementById('mes');
-
-  if(!sel) return;
 
   sel.innerHTML = '';
 
   const usados = new Set();
 
   meses.forEach(m => {
-    const nome = String(m).trim();
-    if(!nome || usados.has(nome)) return;
+    const nome = m.trim();
+    if (usados.has(nome)) return;
 
     usados.add(nome);
 
@@ -63,8 +53,8 @@ async function carregarMeses(){
     sel.appendChild(opt);
   });
 
-  // seleciona primeiro mês SEM disparar loop infinito
-  if(sel.options.length > 0){
+  // 🔥 NÃO usar dispatchEvent (causa loop e lentidão)
+  if (sel.options.length > 0) {
     sel.selectedIndex = 0;
     await atualizarDias();
     await carregarTabela();
@@ -73,10 +63,8 @@ async function carregarMeses(){
 
 /* ================= DIAS ================= */
 async function atualizarDias(){
-  const mes = document.getElementById('mes')?.value;
+  const mes = document.getElementById('mes').value;
   const sel = document.getElementById('dia');
-
-  if(!sel) return;
 
   sel.innerHTML = '<option value="">Selecione</option>';
 
@@ -97,121 +85,97 @@ async function atualizarDias(){
   controlarEdicao();
 }
 
-/* ================= TABELA ================= */
-let carregandoTabela = false;
-
+/* ================= TABELA (COM CACHE - MUITO MAIS RÁPIDO) ================= */
 async function carregarTabela(){
-  if(carregandoTabela) return; // 🔥 trava anti-loop
-  carregandoTabela = true;
+  const mes = document.getElementById('mes').value;
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
 
-  try{
-    const mes = document.getElementById('mes')?.value;
-    const tbody = document.getElementById('tbody');
+  if(!mes) return;
 
-    if(!tbody || !mes){
-      carregandoTabela = false;
-      return;
-    }
-
-    tbody.innerHTML = '';
-
-    let url;
-    if(mes === 'TOTAL GERAL'){
-      url = `/api/mes-total-geral?tipo=${TIPO}`;
-    } else {
-      url = `/api/tabela?mes=${encodeURIComponent(mes)}&tipo=${TIPO}`;
-    }
-
-    const rows = await q(url);
-
-    rows.forEach(r=>{
-      const tr = document.createElement('tr');
-
-      tr.innerHTML = `
-        <td>${r.id ?? ''}</td>
-        <td>${r.data ?? ''}</td>
-        <td>${r.pr ?? ''}</td>
-        ${TIPO === 'sig' 
-          ? `<td>${r.emb ?? ''}</td><td>${r.css ?? ''}</td>` 
-          : ''}
-      `;
-
-      tr.style.pointerEvents = 'none';
-      tbody.appendChild(tr);
-    });
-
-  }finally{
-    carregandoTabela = false;
+  let url;
+  if(mes === 'TOTAL GERAL'){
+    url = `/api/mes-total-geral?tipo=${TIPO}`;
+  } else {
+    url = `/api/tabela?mes=${encodeURIComponent(mes)}&tipo=${TIPO}`;
   }
+
+  // 🔥 Apenas 1 fetch pesado (Excel)
+  cacheTabela = await q(url);
+
+  renderTabela();
 }
 
-/* ================= CARREGAR DIA ================= */
-let carregandoDia = false;
+function renderTabela(){
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
 
-async function carregarDia(){
-  if(carregandoDia) return; // 🔥 evita loop
-  carregandoDia = true;
+  cacheTabela.forEach(r=>{
+    const tr = document.createElement('tr');
 
-  try{
-    const mes = document.getElementById('mes')?.value;
-    const dia = document.getElementById('dia')?.value;
+    tr.innerHTML = `
+      <td>${r.id || ''}</td>
+      <td>${r.data || ''}</td>
+      <td>${r.pr || ''}</td>
+      ${TIPO === 'sig' ? `<td>${r.emb || ''}</td><td>${r.css || ''}</td>` : ''}
+    `;
 
-    if(!mes || !dia || mes === 'TOTAL GERAL'){
-      controlarEdicao();
-      return;
-    }
+    tr.style.pointerEvents = 'none';
+    tbody.appendChild(tr);
+  });
+}
 
-    const dados = await q(`/api/tabela?mes=${encodeURIComponent(mes)}&tipo=${TIPO}`);
-    const linha = dados.find(l => String(l.id) === String(dia));
+/* ================= CARREGAR DIA (SEM NOVO FETCH!) ================= */
+function carregarDia(){
+  const mes = document.getElementById('mes').value;
+  const dia = document.getElementById('dia').value;
 
-    const pr = document.getElementById('pr');
-    if(pr) pr.value = linha?.pr ?? '';
-
-    if(TIPO === 'sig'){
-      const emb = document.getElementById('emb');
-      const css = document.getElementById('css');
-      if(emb) emb.value = linha?.emb ?? '';
-      if(css) css.value = linha?.css ?? '';
-    }
-
+  if(!mes || !dia || mes === 'TOTAL GERAL'){
     controlarEdicao();
-  }finally{
-    carregandoDia = false;
+    return;
   }
+
+  // 🔥 usa cache em vez de chamar API de novo (grande ganho de performance)
+  const linha = cacheTabela.find(l => String(l.id) === String(dia));
+
+  document.getElementById('pr').value = linha?.pr || '';
+
+  if(TIPO === 'sig'){
+    document.getElementById('emb').value = linha?.emb || '';
+    document.getElementById('css').value = linha?.css || '';
+  }
+
+  controlarEdicao();
 }
 
-/* ================= INIT ================= */
-window.addEventListener('DOMContentLoaded', async ()=>{
-  const mesEl = document.getElementById('mes');
-  const diaEl = document.getElementById('dia');
-  const salvarEl = document.getElementById('salvar');
-
+/* ================= LOAD (MAIS RÁPIDO QUE window.load) ================= */
+document.addEventListener('DOMContentLoaded', async ()=>{
   await carregarMeses();
   controlarEdicao();
 
-  mesEl?.addEventListener('change', async ()=>{
+  document.getElementById('mes').addEventListener('change', async ()=>{
     await atualizarDias();
-    await carregarTabela();
+    await carregarTabela(); // 1 único fetch pesado
   });
 
-  diaEl?.addEventListener('change', carregarDia);
+  document.getElementById('dia').addEventListener('change', carregarDia);
 
-  salvarEl?.addEventListener('click', async ()=>{
-    const mes = mesEl?.value;
-    const dia = diaEl?.value;
+  document.getElementById('salvar').addEventListener('click', async ()=>{
+    const mes = document.getElementById('mes').value;
+    const dia = document.getElementById('dia').value;
 
-    if(!mes || mes === 'TOTAL GERAL' || !dia) return;
+    if(mes === 'TOTAL GERAL' || !dia) return;
 
     const payload = {
       mes,
       dia,
-      pr: document.getElementById('pr')?.value || '',
+      pr: document.getElementById('pr').value,
       tipo: TIPO
     };
 
     if(TIPO === 'sig'){
-      payload.emb = document.getElementById('emb')?.value || '';
-      payload.css = document.getElementById('css')?.value || '';
+      payload.emb = document.getElementById('emb').value;
+      payload.css = document.getElementById('css').value;
     }
 
     const res = await fetch('/api/salvar',{
@@ -222,8 +186,8 @@ window.addEventListener('DOMContentLoaded', async ()=>{
 
     if(res.ok){
       alert('Salvo com sucesso!');
-      await carregarTabela();
-      await carregarDia();
+      await carregarTabela(); // atualiza cache
+      carregarDia(); // sem novo fetch
     } else {
       alert('Erro ao salvar');
     }
