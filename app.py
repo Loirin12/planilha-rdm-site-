@@ -119,8 +119,7 @@ def garantir_aba(arquivo, mes, tipo):
 
 
 # ================= ROTAS PÚBLICAS =================
-@app.route('/Home')
-@login_required  # 🔒 AGORA EXIGE LOGIN
+@app.route('/')
 def home():
     return render_template('inicio.html')
 
