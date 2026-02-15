@@ -51,6 +51,18 @@ ARQUIVO_SSH = os.path.join(PASTA_DADOS, 'dadossh.xlsx')
 
 ANO_FIXO = 2026
 
+# 🔥 INICIALIZA ARQUIVOS AO SUBIR (ESSENCIAL NO RENDER)
+def inicializar_sistema():
+    try:
+        garantir_arquivo(ARQUIVO_SIG)
+        garantir_arquivo(ARQUIVO_SSH)
+        print("✔ Sistema inicializado - Excel criado no /data")
+    except Exception as e:
+        print("ERRO AO INICIALIZAR:", str(e))
+
+inicializar_sistema()
+
+
 # ================= LOGIN =================
 @app.route('/Login-Planilha', methods=['GET', 'POST'])
 def login():
@@ -128,14 +140,6 @@ def garantir_aba(arquivo, mes, tipo):
             ws.cell(row=d+1, column=2, value=data.strftime('%d/%m/%Y'))
 
         wb.save(arquivo)
-
-
-# ================= ROTAS PÚBLICAS =================
-@app.route('/Home')
-@login_required  # 🔒 AGORA EXIGE LOGIN
-def home():
-    return render_template('inicio.html')
-
 
 # ================= PLANILHAS (CADA UMA É UM "SITE") =================
 @app.route('/planilha-sig')
@@ -362,13 +366,14 @@ def api_tabela():
     mes = request.args.get('mes')
     tipo = request.args.get('tipo')
 
-    arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
-    if not os.path.exists(arquivo):
-        return jsonify([])
+  arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
+
+# 🔥 GARANTE ARQUIVO E ABA (evita loading infinito)
+    garantir_arquivo(arquivo)
+    garantir_aba(arquivo, mes, tipo)
 
     wb = load_workbook(arquivo, data_only=True)
-    if mes.upper() not in wb.sheetnames:
-        return jsonify([])
+
 
     ws = wb[mes.upper()]
     dados = []
