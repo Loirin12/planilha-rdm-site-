@@ -7,8 +7,10 @@ from flask import (
     redirect,
     url_for,
     session,
-    flash
+    flash,
+    send_file  # 🔥 ADICIONE ISSO
 )
+
 
 from openpyxl import load_workbook, Workbook
 from functools import wraps
