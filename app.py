@@ -119,7 +119,7 @@ def garantir_aba(arquivo, mes, tipo):
 
 
 # ================= ROTAS PÚBLICAS =================
-@app.route('/')
+@app.route('/Home')
 @login_required  # 🔒 AGORA EXIGE LOGIN
 def home():
     return render_template('inicio.html')
@@ -527,7 +527,7 @@ def logout():
     return redirect(url_for('login'))
 
 # ================= ROTA RAIZ =================
-@app.route('/Home')
+@app.route('/')
 def index():
     # 🔒 se estiver logado, vai para a planilha
     if 'usuario' in session:
