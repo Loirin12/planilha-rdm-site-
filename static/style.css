@@ -124,6 +124,12 @@ th {
     gap: 20px;
 }
 
+.criador-texto {
+  color: #adb5bd;   /* cinza suave (igual sistema) */
+  font-size: 14px;
+  font-weight: 500;
+}
+
 /* Botões */
 .social-link {
     display: inline-flex;
