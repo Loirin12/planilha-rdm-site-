@@ -17,7 +17,6 @@ from functools import wraps
 import os
 import calendar
 import datetime
-import send_file
 
 # ================= CONFIG FLASK =================
 app = Flask(__name__, static_folder='static', template_folder='templates')
