@@ -69,6 +69,11 @@ def login_required(f):
     @wraps(f)
     def wrap(*args, **kwargs):
         if 'usuario' not in session:
+            # 🔥 SE FOR API, NÃO REDIRECIONA (isso evita o loop infinito)
+            if request.path.startswith('/api/'):
+                return jsonify({'error': 'nao_autorizado'}), 401
+            
+            # 🔒 Se for página normal, redireciona para login
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return wrap
@@ -537,5 +542,6 @@ def index():
 
 # ================= RUN =================
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)
+
 
