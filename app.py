@@ -268,62 +268,79 @@ def atualizar_total_geral_excel():
 def api_salvar():
     try:
         data = request.json
-        mes = data.get('mes')
+
+        mes = (data.get('mes') or '').strip().upper()
         dia = int(data.get('dia'))
         pr = data.get('pr')
         emb = data.get('emb')
         css = data.get('css')
-        tipo = data.get('tipo')
         percent_css = data.get('percent_css')
+        tipo = data.get('tipo')
 
-        # 🚫 BLOQUEIO TOTAL
-        if mes and mes.upper() == 'TOTAL GERAL':
+        if mes == 'TOTAL GERAL':
             return jsonify({'error': 'TOTAL GERAL não pode ser editado'}), 403
 
         arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
-        garantir_aba(arquivo, mes, tipo)
 
         wb = load_workbook(arquivo)
-        ws = wb[mes.upper()]
 
-        # P&R → coluna C
+        # 🔥 PEGA SOMENTE ABA SEM NÚMERO (EX: FEVEREIRO)
+        aba_correta = None
+
+        for sheet in wb.sheetnames:
+            nome = sheet.strip()
+            nome_upper = nome.upper()
+
+            # tem que ser o mês
+            if not nome_upper.startswith(mes):
+                continue
+
+            # ignora abas com número (MAIO5, JUNHO6, etc)
+            if any(c.isdigit() for c in nome_upper):
+                continue
+
+            aba_correta = sheet
+            break
+
+        if not aba_correta:
+            return jsonify({
+                'error': f'Aba "{mes}" sem número não encontrada',
+                'abas': wb.sheetnames
+            }), 400
+
+        ws = wb[aba_correta]
+
+        linha = dia + 1  # linha 2 = dia 1
+
+        # P&R → Coluna C (3)
         if pr not in (None, ''):
-            ws.cell(
-                row=dia+1,
-                column=3,
-                value=float(str(pr).replace(',', '.'))
-            )
+            ws.cell(row=linha, column=3,
+                    value=float(str(pr).replace(',', '.')))
 
-        # 🔥 EMBAIXADOR → coluna D (AGORA VAI SALVAR)
-        ws.cell(
-            row=dia+1,
-            column=4,
-            value=emb if emb else ''
-        )
+        # EMBAIXADOR → Coluna D (4)
+        ws.cell(row=linha, column=4, value=emb if emb else '')
 
-        # CSS → coluna F
+        # CSS → Coluna F (6)
         if css not in (None, ''):
-            ws.cell(
-                row=dia+1,
-                column=6,
-                value=float(str(css).replace(',', '.'))
-            )
+            ws.cell(row=linha, column=6,
+                    value=float(str(css).replace(',', '.')))
 
-        # % CSS → coluna G
+        # % CSS → Coluna G (7)
         if percent_css not in (None, ''):
-            ws.cell(
-                row=dia+1,
-                column=7,
-                value=float(str(percent_css).replace(',', '.'))
-            )
+            ws.cell(row=linha, column=7,
+                    value=float(str(percent_css).replace(',', '.')))
 
         wb.save(arquivo)
+        wb.close()
 
-        return jsonify({'ok': True})
+        print(f"[SALVO NA ABA SEM NÚMERO]: {aba_correta}")
+
+        return jsonify({'ok': True, 'aba_usada': aba_correta})
 
     except Exception as e:
-        print("ERRO AO SALVAR:", str(e))  # 🔥 vai aparecer no log do Render
+        print("ERRO AO SALVAR:", str(e))
         return jsonify({'error': str(e)}), 500
+
 
 
 # ================= API TABELA =================
