@@ -8,7 +8,7 @@ from flask import (
     url_for,
     session,
     flash,
-    send_file  # 🔥 ADICIONE ISSO
+    send_file  # 🔥 ADICIONE ESTA LINHA
 )
 
 
