@@ -40,8 +40,16 @@ def no_cache(response):
 USUARIOS = {'admin': 'sig@2025'}
 
 # ================= CONFIG EXCEL =================
-ARQUIVO_SIG = 'dados.xlsx'
-ARQUIVO_SSH = 'dadossh.xlsx'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Se existir disco persistente do Render usa /data
+if os.path.exists('/data'):
+    DATA_DIR = '/data'
+else:
+    DATA_DIR = BASE_DIR  # funciona local também
+
+ARQUIVO_SIG = os.path.join(DATA_DIR, 'dados.xlsx')
+ARQUIVO_SSH = os.path.join(DATA_DIR, 'dadossh.xlsx')
 ANO_FIXO = 2026
 
 # ================= LOGIN =================
