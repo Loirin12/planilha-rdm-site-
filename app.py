@@ -551,11 +551,13 @@ def logout():
 # ================= ROTA RAIZ =================
 @app.route('/')
 def index():
-    # 🔒 se estiver logado, vai para a planilha
-    if 'usuario' in session:
-        return redirect(url_for('planilha_sig'))
-    # 🔒 se não estiver logado, força login
-    return redirect(url_for('login'))
+    # se não estiver logado, mostra login direto (SEM loop)
+    if 'usuario' not in session:
+        return render_template('login.html')
+
+    # se estiver logado vai para planilha
+    return redirect(url_for('planilha_sig'))
+
 
 # ================= RUN =================
 # NÃO coloque debug=True em produção
