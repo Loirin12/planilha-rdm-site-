@@ -366,14 +366,24 @@ def api_tabela():
     mes = request.args.get('mes')
     tipo = request.args.get('tipo')
 
-  arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
+    if not mes:
+        return jsonify([])
 
-# 🔥 GARANTE ARQUIVO E ABA (evita loading infinito)
+    # Define arquivo correto
+    arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
+
+    # Garante arquivo e aba (evita erro e loading infinito)
     garantir_arquivo(arquivo)
     garantir_aba(arquivo, mes, tipo)
 
+    if not os.path.exists(arquivo):
+        return jsonify([])
+
     wb = load_workbook(arquivo, data_only=True)
 
+    if mes.upper() not in wb.sheetnames:
+        wb.close()
+        return jsonify([])
 
     ws = wb[mes.upper()]
     dados = []
@@ -381,7 +391,6 @@ def api_tabela():
     for r in range(2, ws.max_row + 1):
         data_celula = ws.cell(row=r, column=2).value
 
-        # ✅ FORMATA DATA CORRETAMENTE
         if isinstance(data_celula, (datetime.date, datetime.datetime)):
             data_formatada = data_celula.strftime('%d/%m/%Y')
         else:
@@ -398,9 +407,9 @@ def api_tabela():
             item['css'] = ws.cell(row=r, column=6).value or ''
             item['percent_css'] = ws.cell(row=r, column=7).value or ''
 
-
         dados.append(item)
 
+    wb.close()
     return jsonify(dados)
 
 
