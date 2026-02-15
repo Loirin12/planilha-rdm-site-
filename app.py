@@ -15,6 +15,7 @@ from functools import wraps
 import os
 import calendar
 import datetime
+import send_file
 
 # ================= CONFIG FLASK =================
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -169,6 +170,43 @@ def api_meses():
     resultado = [mes for mes in MESES_ORDEM if mes in abas]
 
     return jsonify(resultado)
+
+# ================= BAIXAR PLANILHA SIG =================
+@app.route('/baixar-sig')
+@login_required
+def baixar_sig():
+    try:
+        if not os.path.exists(ARQUIVO_SIG):
+            return "Arquivo SIG não encontrado", 404
+
+        return send_file(
+            ARQUIVO_SIG,
+            as_attachment=True,
+            download_name='planilha_SIG_atualizada.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            cache_timeout=0  # 🔥 evita baixar versão antiga
+        )
+    except Exception as e:
+        return str(e), 500
+
+
+# ================= BAIXAR PLANILHA SSH =================
+@app.route('/baixar-ssh')
+@login_required
+def baixar_ssh():
+    try:
+        if not os.path.exists(ARQUIVO_SSH):
+            return "Arquivo SSH não encontrado", 404
+
+        return send_file(
+            ARQUIVO_SSH,
+            as_attachment=True,
+            download_name='planilha_SSH_atualizada.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            cache_timeout=0
+        )
+    except Exception as e:
+        return str(e), 500
 
 
 # ================= API DIAS =================
