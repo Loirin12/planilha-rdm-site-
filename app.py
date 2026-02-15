@@ -233,7 +233,9 @@ def atualizar_total_geral_excel():
         'SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'
     ]
 
-    # 🚀 MODO RÁPIDO
+    if not os.path.exists(ARQUIVO_SIG):
+        return [], 0, 0, 0
+
     wb = load_workbook(ARQUIVO_SIG, read_only=True, data_only=True)
 
     totais = []
@@ -251,11 +253,10 @@ def atualizar_total_geral_excel():
         soma_css_mes = 0
         soma_css_peso_mes = 0
 
-        # ⚡ MUITO MAIS RÁPIDO que ws.cell()
         for row in ws.iter_rows(min_row=2, values_only=True):
-            pr = row[2]   # Coluna C
-            css = row[5]  # Coluna F
-            percent = row[6]  # Coluna G
+            pr = row[2] if len(row) > 2 else None
+            css = row[5] if len(row) > 5 else None
+            percent = row[6] if len(row) > 6 else None
 
             if pr not in (None, ''):
                 try:
@@ -267,7 +268,6 @@ def atualizar_total_geral_excel():
                 try:
                     css = float(css)
                     percent = float(percent)
-
                     if css > 0:
                         soma_css_mes += css
                         soma_css_peso_mes += css * percent
@@ -296,14 +296,6 @@ def atualizar_total_geral_excel():
     )
 
     return totais, int(total_pr_anual), int(total_css_anual), media_anual
-
-
-    # 🔥 TOTAL ANUAL (ÚLTIMA LINHA)
-    ws.cell(row=linha, column=1, value='TOTAL ANUAL')
-    ws.cell(row=linha, column=3, value=int(total_pr_anual))
-    ws.cell(row=linha, column=6, value=int(total_css_anual))
-
-    wb.save(ARQUIVO_SIG)
 
 
 # ================= API SALVAR =================
