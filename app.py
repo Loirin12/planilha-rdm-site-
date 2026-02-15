@@ -24,8 +24,8 @@ app.secret_key = 'NWanClh3BDY8I67SwHmXjhPQ2We2n2GMbr7KOtRIeJ7s9KMOMp'
 app.config.update(
     SESSION_PERMANENT=False,
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
-    SESSION_COOKIE_SECURE=False,   # True só se usar HTTPS
+    SESSION_COOKIE_SAMESITE='None',
+    SESSION_COOKIE_SECURE=True,  # 🔥 OBRIGATÓRIO no Render
 )
 
 @app.after_request
