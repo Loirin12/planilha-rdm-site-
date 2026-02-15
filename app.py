@@ -528,9 +528,12 @@ def logout():
 
 # ================= ROTA RAIZ =================
 @app.route('/')
-def Home():
-    return render_template('inicio.html')
-
+def index():
+    # 🔒 se estiver logado, vai para a planilha
+    if 'usuario' in session:
+        return redirect(url_for('planilha_sig'))
+    # 🔒 se não estiver logado, força login
+    return redirect(url_for('login'))
 
 # ================= RUN =================
 if __name__ == '__main__':
