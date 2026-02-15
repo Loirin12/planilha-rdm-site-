@@ -326,7 +326,20 @@ def api_salvar():
 
         arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
 
+        # 🔥 CORREÇÕES CRÍTICAS (FALTAVAM)
+        garantir_arquivo(arquivo)
+        garantir_aba(arquivo, mes, tipo)
+
         wb = load_workbook(arquivo)
+
+
+       arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
+
+      # 🔥 GARANTE QUE O ARQUIVO EXISTE NO /data
+        garantir_arquivo(arquivo)
+
+        wb = load_workbook(arquivo)
+
 
         # 🔥 PEGA SOMENTE ABA SEM NÚMERO (EX: FEVEREIRO)
         aba_correta = None
