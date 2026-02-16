@@ -8,7 +8,7 @@ from flask import (
     url_for,
     session,
     flash,
-    send_file  # 🔥 ADICIONE ESTA LINHA
+    send_file
 )
 
 from openpyxl import load_workbook, Workbook
@@ -40,7 +40,6 @@ def no_cache(response):
 USUARIOS = {'admin': 'sig@2025'}
 
 # ================= CONFIG EXCEL =================
-# ================= DISCO PERSISTENTE RENDER =================
 PASTA_DADOS = '/data'
 os.makedirs(PASTA_DADOS, exist_ok=True)
 
@@ -57,8 +56,6 @@ def inicializar_sistema():
         print("✔ Sistema inicializado - Excel criado no /data")
     except Exception as e:
         print(f"ERRO CRÍTICO AO INICIALIZAR: {str(e)}")
-        # Opcional: Continue sem crashar, mas registre o erro
-        # raise  # Remova se quiser que o app continue mesmo com erro
 
 inicializar_sistema()
 
@@ -66,14 +63,14 @@ inicializar_sistema()
 @app.route('/Login-Planilha', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        session.clear()  # 🔥 limpa sessão APENAS ao tentar logar
+        session.clear()
 
         usuario = request.form.get('usuario')
         senha = request.form.get('senha')
 
         if usuario in USUARIOS and USUARIOS[usuario] == senha:
             session['usuario'] = usuario
-            session.permanent = False  # 🔒 não salva login
+            session.permanent = False
             return redirect(url_for('planilha_sig'))
 
         flash('Usuário ou senha incorretos')
@@ -85,11 +82,8 @@ def login_required(f):
     @wraps(f)
     def wrap(*args, **kwargs):
         if 'usuario' not in session:
-            # 🔥 SE FOR API, NÃO REDIRECIONA (isso evita o loop infinito)
             if request.path.startswith('/api/'):
                 return jsonify({'error': 'nao_autorizado'}), 401
-            
-            # 🔒 Se for página normal, redireciona para login
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return wrap
@@ -110,9 +104,8 @@ def garantir_aba(arquivo, mes, tipo):
         garantir_arquivo(arquivo)
         mes = mes.upper()
 
-        wb = load_workbook(arquivo)  # ✅ wb definido aqui
+        wb = load_workbook(arquivo)
 
-        # 🚫 TOTAL GERAL nunca é criado nem alterado
         if mes == 'TOTAL GERAL':
             return
 
@@ -148,7 +141,7 @@ def garantir_aba(arquivo, mes, tipo):
         print(f"ERRO ao garantir aba {mes} em {arquivo}: {str(e)}")
         raise
 
-# ================= PLANILHAS (CADA UMA É UM "SITE") =================
+# ================= PLANILHAS =================
 @app.route('/planilha-sig')
 @login_required
 def planilha_sig():
@@ -183,39 +176,24 @@ def api_meses():
         print(f"ERRO em /api/meses: {str(e)}")
         return jsonify({'error': 'Erro interno ao carregar meses'}), 500
 
-# ================= BAIXAR PLANILHA SIG =================
+# ================= BAIXAR PLANILHAS =================
 @app.route('/baixar-sig')
 @login_required
 def baixar_sig():
     try:
         if not os.path.exists(ARQUIVO_SIG):
             return "Arquivo SIG não encontrado", 404
-
-        return send_file(
-            ARQUIVO_SIG,
-            as_attachment=True,
-            download_name='planilha_SIG_atualizada.xlsx',
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            cache_timeout=0  # 🔥 evita baixar versão antiga
-        )
+        return send_file(ARQUIVO_SIG, as_attachment=True, download_name='planilha_SIG_atualizada.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', cache_timeout=0)
     except Exception as e:
         return str(e), 500
 
-# ================= BAIXAR PLANILHA SSH =================
 @app.route('/baixar-ssh')
 @login_required
 def baixar_ssh():
     try:
         if not os.path.exists(ARQUIVO_SSH):
             return "Arquivo SSH não encontrado", 404
-
-        return send_file(
-            ARQUIVO_SSH,
-            as_attachment=True,
-            download_name='planilha_SSH_atualizada.xlsx',
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            cache_timeout=0
-        )
+        return send_file(ARQUIVO_SSH, as_attachment=True, download_name='planilha_SSH_atualizada.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', cache_timeout=0)
     except Exception as e:
         return str(e), 500
 
@@ -237,7 +215,7 @@ def api_dias():
     ultimo = calendar.monthrange(ANO_FIXO, numero)[1]
     return jsonify(list(range(1, ultimo + 1)))
 
-# ================= ATUALIZAR TOTAL GERAL NO EXCEL =================
+# ================= ATUALIZAR TOTAL GERAL =================
 def atualizar_total_geral_excel():
     MESES_VALIDOS = [
         'JANEIRO','FEVEREIRO','MARÇO','ABRIL',
@@ -287,10 +265,7 @@ def atualizar_total_geral_excel():
                     except:
                         pass
 
-            media_percent = (
-                round(soma_css_peso_mes / soma_css_mes, 1)
-                if soma_css_mes > 0 else 0
-            )
+            media_percent = round(soma_css_peso_mes / soma_css_mes, 1) if soma_css_mes > 0 else 0
 
             totais.append({
                 'mes': mes,
@@ -303,10 +278,7 @@ def atualizar_total_geral_excel():
             total_css_anual += soma_css_mes
             soma_css_peso_anual += soma_css_peso_mes
 
-        media_anual = (
-            round(soma_css_peso_anual / total_css_anual, 1)
-            if total_css_anual > 0 else 0
-        )
+        media_anual = round(soma_css_peso_anual / total_css_anual, 1) if total_css_anual > 0 else 0
 
         wb.close()
         return totais, int(total_pr_anual), int(total_css_anual), media_anual
@@ -334,32 +306,24 @@ def api_salvar():
 
         arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
 
-        # 🔥 GARANTE QUE O ARQUIVO E ABA EXISTEM
         garantir_arquivo(arquivo)
         garantir_aba(arquivo, mes, tipo)
 
         wb = load_workbook(arquivo)
         ws = wb[mes]
 
-        linha = dia + 1  # linha 2 = dia 1
+        linha = dia + 1
 
-        # P&R → Coluna C
         if pr not in (None, ''):
-            ws.cell(row=linha, column=3,
-                    value=float(str(pr).replace(',', '.')))
+            ws.cell(row=linha, column=3, value=float(str(pr).replace(',', '.')))
 
-        # EMBAIXADOR → Coluna D
         ws.cell(row=linha, column=4, value=emb if emb else '')
 
-        # CSS → Coluna F
         if css not in (None, ''):
-            ws.cell(row=linha, column=6,
-                    value=float(str(css).replace(',', '.')))
+            ws.cell(row=linha, column=6, value=float(str(css).replace(',', '.')))
 
-        # % CSS → Coluna G
         if percent_css not in (None, ''):
-            ws.cell(row=linha, column=7,
-                    value=float(str(percent_css).replace(',', '.')))
+            ws.cell(row=linha, column=7, value=float(str(percent_css).replace(',', '.')))
 
         wb.save(arquivo)
         wb.close()
@@ -383,10 +347,8 @@ def api_tabela():
         if not mes:
             return jsonify([])
 
-        # Define arquivo correto
         arquivo = ARQUIVO_SIG if tipo == 'sig' else ARQUIVO_SSH
 
-        # Garante arquivo e aba (evita erro e loading infinito)
         garantir_arquivo(arquivo)
         garantir_aba(arquivo, mes, tipo)
 
@@ -449,7 +411,7 @@ def resumo():
 
             for aba in wb.sheetnames:
                 if aba.upper() not in MESES_VALIDOS:
-                    continue  # ignora abas inválidas
+                    continue
 
                 ws = wb[aba]
                 for r in range(2, ws.max_row + 1):
@@ -466,11 +428,8 @@ def resumo():
             print(f"ERRO em soma_coluna para {arquivo}: {str(e)}")
             return 0
 
-    # P&R
     total_sig_pr = soma_coluna(ARQUIVO_SIG, 3)
     total_ssh_pr = soma_coluna(ARQUIVO_SSH, 3)
-
-    # CSS (somente SIG)
     total_sig_css = soma_coluna(ARQUIVO_SIG, 6)
 
     resultado = int(total_sig_pr - total_ssh_pr)
@@ -517,7 +476,7 @@ def api_mes_total_geral():
             soma_css_mes = 0
             soma_css_peso_mes = 0
 
-            for row in ws.iter_rows(min_row=2, values_only=True):
+                       for row in ws.iter_rows(min_row=2, values_only=True):
                 pr = row[2] if len(row) > 2 else None
                 css = row[5] if len(row) > 5 else None
                 percent = row[6] if len(row) > 6 else None
@@ -529,7 +488,6 @@ def api_mes_total_geral():
                     except:
                         pass
 
-                # 🔥 CSS só existe no SIG (evita
                 # 🔥 CSS só existe no SIG (evita erro no SSH)
                 if tipo == 'sig' and css and percent:
                     try:
@@ -596,17 +554,10 @@ def logout():
 # ================= ROTA RAIZ =================
 @app.route('/')
 def index():
-    # se não estiver logado, mostra login direto (SEM loop)
     if 'usuario' not in session:
         return render_template('login.html')
-
-    # se estiver logado vai para planilha
     return redirect(url_for('planilha_sig'))
 
 # ================= RUN =================
-# NÃO coloque debug=True em produção
 if __name__ == '__main__':
     app.run()
-
-
-
