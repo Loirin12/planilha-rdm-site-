@@ -20,7 +20,7 @@
             justify-content: center;
             align-items: center;
             color: #fff;
-            padding: 10px; /* evita que fique colado nas bordas em telas pequenas */
+            padding: 10px;
         }
 
         .login-container {
@@ -29,7 +29,7 @@
             border-radius: 12px;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
             width: 100%;
-            max-width: 400px; /* limita a largura máxima em PCs */
+            max-width: 400px;
             text-align: center;
         }
 
@@ -79,7 +79,6 @@
             font-size: 14px;
         }
 
-        /* Botão menor e discreto */
         .btn-home22 {
             display: inline-block;
             margin-top: 15px;
@@ -97,7 +96,6 @@
             color: #64b5f6;
         }
 
-        /* ---------- MEDIA QUERIES ---------- */
         @media (max-width: 500px) {
             .login-container {
                 padding: 30px 20px;
@@ -128,9 +126,9 @@
 </head>
 <body>
 
-    
 <div class="login-container">
     <h2>Login</h2>
+
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <div class="flash">
@@ -141,17 +139,16 @@
       {% endif %}
     {% endwith %}
 
-    <form method="post">
+    <!-- Form de login (correto para sua rota /Login-Planilha) -->
+    <form method="POST" action="{{ url_for('login') }}">
         <input type="text" name="usuario" placeholder="Usuário" required>
         <input type="password" name="senha" placeholder="Senha" required>
         <button type="submit">Entrar</button>
     </form>
 
-    <!-- Botão de voltar para home -->
-    <a href="{{ url_for('/') }}" class="btn-home22">Voltar para Home</a>
+    <!-- BOTÃO CORRIGIDO (era o que causava o erro 500) -->
+    <a href="{{ url_for('index') }}" class="btn-home22">Voltar para Home</a>
 </div>
 
 </body>
 </html>
-
-
