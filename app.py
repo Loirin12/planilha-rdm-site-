@@ -177,6 +177,7 @@ def api_dias():
     return jsonify(list(range(1, ultimo + 1)))
 
 # ================= ATUALIZAR TOTAL GERAL NO EXCEL =================
+# ================= ATUALIZAR TOTAL GERAL NO EXCEL =================
 def atualizar_total_geral_excel():
     MESES_VALIDOS = [
         'JANEIRO','FEVEREIRO','MARÇO','ABRIL',
@@ -247,6 +248,7 @@ def atualizar_total_geral_excel():
     )
 
     return totais, int(total_pr_anual), int(total_css_anual), media_anual
+
 
 
     # 🔥 TOTAL ANUAL (ÚLTIMA LINHA)
