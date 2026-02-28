@@ -546,10 +546,9 @@ def baixar_sig():
     else:
         return "Arquivo dados.xlsx não encontrado no servidor", 404
 
-
- @app.route("/baixar-ssh")
- @login_required
- def baixar_ssh():
+@app.route("/baixar-ssh")
+@login_required
+def baixar_ssh():
     """Baixar planilha SSH atualizada"""
     if os.path.exists(ARQUIVO_SSH):
         return send_file(
