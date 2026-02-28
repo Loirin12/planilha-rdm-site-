@@ -45,6 +45,11 @@ ARQUIVO_SIG = 'dados.xlsx'
 ARQUIVO_SSH = 'dadossh.xlsx'
 ANO_FIXO = 2026
 
+# Cache para TOTAL GERAL (evita lentidão no Render)
+cache_total_geral = {
+    "dados": None
+}
+
 # ================= LOGIN =================
 @app.route('/Login-Planilha', methods=['GET', 'POST'])
 def login():
@@ -529,11 +534,12 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route("/baixar-sig")
+@login_required
 def baixar_sig():
     """Baixar planilha SIG atualizada"""
-    if os.path.exists(CAMINHO_SIG):
+    if os.path.exists(ARQUIVO_SIG):
         return send_file(
-            CAMINHO_SIG,
+            ARQUIVO_SIG,
             as_attachment=True,
             download_name="Planilha_SIG_Atualizada.xlsx"
         )
@@ -541,12 +547,13 @@ def baixar_sig():
         return "Arquivo dados.xlsx não encontrado no servidor", 404
 
 
-@app.route("/baixar-ssh")
-def baixar_ssh():
+ @app.route("/baixar-ssh")
+ @login_required
+ def baixar_ssh():
     """Baixar planilha SSH atualizada"""
-    if os.path.exists(CAMINHO_SSH):
+    if os.path.exists(ARQUIVO_SSH):
         return send_file(
-            CAMINHO_SSH,
+            ARQUIVO_SSH,
             as_attachment=True,
             download_name="Planilha_SSH_Atualizada.xlsx"
         )
