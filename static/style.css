@@ -204,27 +204,12 @@ th {
   transform: translateY(-2px);
 }
 
-.criador-texto {
-  color: #adb5bd;   /* cinza suave (igual sistema) */
-  font-size: 14px;
-  font-weight: 500;
-}
-
-/* Texto do criador já está à direita, então alinhamos o botão igual */
-.botao-download {
+.rodape-criador {
     display: flex;
-    justify-content: flex-end; /* joga para direita */
-    margin-top: 8px; /* espaço abaixo do nome do criador */
-    margin-bottom: 15px;
+    flex-direction: column;
+    align-items: flex-end; /* tudo alinhado à direita */
+    width: 100%;
 }
-
-/* Opcional: deixar botão mais profissional no seu dashboard dark */
-.botao-download .btn {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-    border-radius: 8px;
-    font-weight: 500;
-}
-
 
 /* 🚫 TABELA TOTALMENTE VISUAL */
 #tabela {
