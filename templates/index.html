@@ -82,30 +82,26 @@
     </div>
 
   <!-- 🔥 TEXTO NO LADO DIREITO DA TABELA -->
-<div class="d-flex justify-content-end align-items-center mb-2">
- <div class="criador-texto">
-  <small>Desenvolvido por: <strong>RianZxTr3M / Jorge Do Mequi</strong></small>
- </div>
+<div class="rodape-criador">
+    <div class="criador-texto">
+        <small>
+            Desenvolvido por: 
+            <strong>RianZxTr3M / Jorge Do Mequi</strong>
+        </small>
+    </div>
+
+    <div class="botao-download">
+        {% if tipo == 'sig' %}
+          <a href="/baixar-sig" class="btn btn-success">
+            📥 Baixar Planilha SIG
+          </a>
+        {% else %}
+          <a href="/baixar-ssh" class="btn btn-danger">
+            📥 Baixar Planilha SSH
+          </a>
+        {% endif %}
+    </div>
 </div>
-
-<table class="table table-bordered">
-
-  <!-- BOTÕES DE AÇÃO -->
-<div class="d-flex justify-content-between align-items-center mb-2">
-  
-  <<div class="botao-download">
-    {% if tipo == 'sig' %}
-      <a href="/baixar-sig" class="btn btn-success">
-        📥 Baixar Planilha SIG
-      </a>
-    {% else %}
-      <a href="/baixar-ssh" class="btn btn-danger">
-        📥 Baixar Planilha SSH
-      </a>
-    {% endif %}
-</div>
-
-
 
   <!-- TABELA -->
   <div class="mt-4">
