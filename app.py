@@ -451,9 +451,9 @@ def logout():
 @app.route("/baixar-sig")
 def baixar_sig():
     """Baixar planilha SIG atualizada"""
-    if os.path.exists(CAMINHO_SIG):
+    if os.path.exists(ARQUIVO_SIG):  # ✅ Use ARQUIVO_SIG
         return send_file(
-            CAMINHO_SIG,
+            ARQUIVO_SIG,
             as_attachment=True,
             download_name="Planilha_SIG_Atualizada.xlsx"
         )
@@ -464,9 +464,9 @@ def baixar_sig():
 @app.route("/baixar-ssh")
 def baixar_ssh():
     """Baixar planilha SSH atualizada"""
-    if os.path.exists(CAMINHO_SSH):
+    if os.path.exists(ARQUIVO_SSH):  # ✅ Use ARQUIVO_SSH
         return send_file(
-            CAMINHO_SSH,
+            ARQUIVO_SSH,
             as_attachment=True,
             download_name="Planilha_SSH_Atualizada.xlsx"
         )
