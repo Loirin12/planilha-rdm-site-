@@ -62,7 +62,7 @@ def login():
         if usuario in USUARIOS and USUARIOS[usuario] == senha:
             session['usuario'] = usuario
             session.permanent = False  # 🔒 não salva login
-            return redirect(url_for('inicio.html'))
+            return redirect(url_for('planilha_sig'))
 
         flash('Usuário ou senha incorretos')
 
