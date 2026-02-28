@@ -16,6 +16,9 @@ import os
 import calendar
 import datetime
 
+# ================= CACHE =================
+cache_total_geral = {"dados": None}
+
 # ================= CONFIG FLASK =================
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = 'NWanClh3BDY8I67SwHmXjhPQ2We2n2GMbr7KOtRIeJ7s9KMOMp'
@@ -175,87 +178,6 @@ def api_dias():
     numero = meses.get(mes.upper(), 1)
     ultimo = calendar.monthrange(ANO_FIXO, numero)[1]
     return jsonify(list(range(1, ultimo + 1)))
-
-# ================= ATUALIZAR TOTAL GERAL NO EXCEL =================
-def atualizar_total_geral_excel():
-    MESES_VALIDOS = [
-        'JANEIRO','FEVEREIRO','MARÇO','ABRIL',
-        'MAIO','JUNHO','JULHO','AGOSTO',
-        'SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'
-    ]
-
-    # 🚀 MODO RÁPIDO
-    wb = load_workbook(ARQUIVO_SIG, read_only=True, data_only=True)
-
-    totais = []
-    total_pr_anual = 0
-    total_css_anual = 0
-    soma_css_peso_anual = 0
-
-    for mes in MESES_VALIDOS:
-        if mes not in wb.sheetnames:
-            continue
-
-        ws = wb[mes]
-
-        total_pr_mes = 0
-        soma_css_mes = 0
-        soma_css_peso_mes = 0
-
-        # ⚡ MUITO MAIS RÁPIDO que ws.cell()
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            pr = row[2]   # Coluna C
-            css = row[5]  # Coluna F
-            percent = row[6]  # Coluna G
-
-            if pr not in (None, ''):
-                try:
-                    total_pr_mes += float(pr)
-                except:
-                    pass
-
-            if css not in (None, '') and percent not in (None, ''):
-                try:
-                    css = float(css)
-                    percent = float(percent)
-
-                    if css > 0:
-                        soma_css_mes += css
-                        soma_css_peso_mes += css * percent
-                except:
-                    pass
-
-        media_percent = (
-            round(soma_css_peso_mes / soma_css_mes, 1)
-            if soma_css_mes > 0 else 0
-        )
-
-        totais.append({
-            'mes': mes,
-            'pr': int(total_pr_mes),
-            'css': int(soma_css_mes),
-            'percent': media_percent
-        })
-
-        total_pr_anual += total_pr_mes
-        total_css_anual += soma_css_mes
-        soma_css_peso_anual += soma_css_peso_mes
-
-    media_anual = (
-        round(soma_css_peso_anual / total_css_anual, 1)
-        if total_css_anual > 0 else 0
-    )
-
-    return totais, int(total_pr_anual), int(total_css_anual), media_anual
-
-
-    # 🔥 TOTAL ANUAL (ÚLTIMA LINHA)
-    ws.cell(row=linha, column=1, value='TOTAL ANUAL')
-    ws.cell(row=linha, column=3, value=int(total_pr_anual))
-    ws.cell(row=linha, column=6, value=int(total_css_anual))
-
-    wb.save(ARQUIVO_SIG)
-
 
 # ================= API SALVAR =================
 @app.route('/api/salvar', methods=['POST'])
@@ -537,4 +459,6 @@ def index():
 
 # ================= RUN =================
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # ✅ Porta correta para Render (pega do ambiente ou usa 5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
