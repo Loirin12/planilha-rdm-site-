@@ -10,6 +10,7 @@ from flask import (
     flash
 )
 
+from flask import send_file
 from openpyxl import load_workbook, Workbook
 from functools import wraps
 import os
@@ -446,6 +447,31 @@ def calculadora():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+@app.route("/baixar-sig")
+def baixar_sig():
+    """Baixar planilha SIG atualizada"""
+    if os.path.exists(CAMINHO_SIG):
+        return send_file(
+            CAMINHO_SIG,
+            as_attachment=True,
+            download_name="Planilha_SIG_Atualizada.xlsx"
+        )
+    else:
+        return "Arquivo dados.xlsx não encontrado no servidor", 404
+
+
+@app.route("/baixar-ssh")
+def baixar_ssh():
+    """Baixar planilha SSH atualizada"""
+    if os.path.exists(CAMINHO_SSH):
+        return send_file(
+            CAMINHO_SSH,
+            as_attachment=True,
+            download_name="Planilha_SSH_Atualizada.xlsx"
+        )
+    else:
+        return "Arquivo dadossh.xlsx não encontrado no servidor", 404
 
 # ================= ROTA RAIZ =================
 @app.route('/')
