@@ -1,0 +1,13 @@
+{
+  "name": "rdm-render",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "xlsx": "^0.18.5",
+    "cors": "^2.8.5"
+  }
+}
