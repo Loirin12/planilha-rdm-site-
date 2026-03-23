@@ -128,6 +128,28 @@ def garantir_aba(arquivo, mes, tipo):
     
     wb.close()
 
+def corrigir_zeros(arquivo):
+    wb = load_workbook(arquivo)
+
+    for aba in wb.sheetnames:
+        ws = wb[aba]
+
+        for r in range(2, ws.max_row + 1):
+            if ws.cell(row=r, column=3).value in (None, ''):
+                ws.cell(row=r, column=3, value=0)
+
+            if ws.cell(row=r, column=4).value in (None, ''):
+                ws.cell(row=r, column=4, value=0)
+
+            if ws.cell(row=r, column=6).value in (None, ''):
+                ws.cell(row=r, column=6, value=0)
+
+            if ws.cell(row=r, column=7).value in (None, ''):
+                ws.cell(row=r, column=7, value=0)
+
+    wb.save(arquivo)
+    wb.close()
+
 
 # ================= ROTAS =================
 @app.route('/Home')
