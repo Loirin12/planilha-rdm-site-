@@ -502,14 +502,24 @@ def download_video():
 
         os.makedirs(pasta, exist_ok=True)
 
-        nome = str(uuid.uuid4())
+        # PRIMEIRO PEGA O NOME REAL DO VÍDEO
+        with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+        titulo = info.get("title", "arquivo")
+
+        # Remove caracteres inválidos
+        titulo = "".join(
+            c for c in titulo
+            if c.isalnum() or c in (" ", "-", "_")
+        ).strip()
 
         if tipo == "audio":
 
-            arquivo = f"{pasta}/{nome}.mp3"
+            arquivo = f"{pasta}/{titulo}.mp3"
 
             ydl_opts = {
-                "format": "bestaudio",
+                "format": "bestaudio/best",
                 "outtmpl": arquivo,
                 "quiet": True,
                 "postprocessors": [
@@ -522,7 +532,7 @@ def download_video():
 
         else:
 
-            arquivo = f"{pasta}/{nome}.mp4"
+            arquivo = f"{pasta}/{titulo}.mp4"
 
             ydl_opts = {
                 "format": "best",
@@ -546,8 +556,6 @@ def download_video():
         return jsonify({
             "erro": str(e)
         })
-
-
 
 # ================= OUTRAS ROTAS =================
 @app.route("/download")
