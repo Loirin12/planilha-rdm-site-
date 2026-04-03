@@ -17,6 +17,9 @@ import os
 import calendar
 import datetime
 import time
+import yt_dlp
+import os
+import uuid
 
 # ================= CACHE =================
 cache_total_geral = {"dados": None, "tempo": 0}
@@ -451,6 +454,99 @@ def api_mes_total_geral():
     cache_total_geral["tempo"] = tempo_atual
 
     return jsonify(resultado)
+# ================= ROTA BUSCAR INFORMACOES =================
+@app.route("/api/info", methods=["POST"])
+def info_video():
+
+    try:
+
+        data = request.get_json()
+        url = data.get("url")
+
+        if not url:
+            return jsonify({"erro": "URL vazia"})
+
+        ydl_opts = {
+            "quiet": True,
+            "skip_download": True
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+
+            info = ydl.extract_info(url, download=False)
+
+            return jsonify({
+                "titulo": info.get("title"),
+                "thumbnail": info.get("thumbnail")
+            })
+
+    except Exception as e:
+
+        print("ERRO INFO:", e)
+
+        return jsonify({
+            "erro": str(e)
+        })
+
+@app.route("/api/download", methods=["POST"])
+def download_video():
+
+    try:
+
+        data = request.get_json()
+
+        url = data.get("url")
+        tipo = data.get("tipo")
+
+        pasta = "downloads"
+
+        os.makedirs(pasta, exist_ok=True)
+
+        nome = str(uuid.uuid4())
+
+        if tipo == "audio":
+
+            arquivo = f"{pasta}/{nome}.mp3"
+
+            ydl_opts = {
+                "format": "bestaudio",
+                "outtmpl": arquivo,
+                "quiet": True,
+                "postprocessors": [
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "mp3"
+                    }
+                ]
+            }
+
+        else:
+
+            arquivo = f"{pasta}/{nome}.mp4"
+
+            ydl_opts = {
+                "format": "best",
+                "outtmpl": arquivo,
+                "quiet": True
+            }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+        return send_file(
+            arquivo,
+            as_attachment=True,
+            download_name=os.path.basename(arquivo)
+        )
+
+    except Exception as e:
+
+        print("ERRO DOWNLOAD:", e)
+
+        return jsonify({
+            "erro": str(e)
+        })
+
 
 
 # ================= OUTRAS ROTAS =================
