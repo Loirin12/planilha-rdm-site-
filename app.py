@@ -550,6 +550,10 @@ def download_video():
 
 
 # ================= OUTRAS ROTAS =================
+@app.route("/download")
+def pagina_download():
+    return render_template("download.html")
+
 @app.route('/calculadora')
 @login_required
 def calculadora():
