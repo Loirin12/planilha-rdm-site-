@@ -1,4 +1,4 @@
-================= IMPORTAÇÕES =================
+#================= IMPORTAÇÕES =================
 
 from flask import (
 Flask,
@@ -24,13 +24,13 @@ import os
 import uuid
 
 
-================= CACHE =================
+#================= CACHE =================
 
 cache_total_geral = {"dados": None, "tempo": 0}
 TEMPO_CACHE = 300  # 5 minutos
 
 
-================= CONFIG FLASK =================
+#================= CONFIG FLASK =================
 
 app = Flask(name, static_folder='static', template_folder='templates')
 app.secret_key = 'NWanClh3BDY8I67SwHmXjhPQ2We2n2GMbr7KOtRIeJ7s9KMOMp'
@@ -54,7 +54,7 @@ response.headers['Expires'] = '0'
 return response
 
 
-================= USUÁRIOS =================
+#================= USUÁRIOS =================
 
 USUARIOS = {'admin': 'sig@2025'}
 
@@ -66,7 +66,7 @@ ARQUIVO_SSH = 'dadossh.xlsx'
 ANO_FIXO = 2026
 
 
-================= LOGIN =================
+#================= LOGIN =================
 
 @app.route('/Login-Planilha', methods=['GET', 'POST'])
 def login():
@@ -86,7 +86,7 @@ session.clear()
 
 return render_template('login.html')
 
-================= MIDDLEWARE =================
+#================= MIDDLEWARE =================
 
 def login_required(f):
 @wraps(f)
@@ -97,7 +97,7 @@ return f(*args, **kwargs)
 return wrap
 
 
-================= HELPERS =================
+#================= HELPERS =================
 
 def garantir_arquivo(arquivo):
 if not os.path.exists(arquivo):
@@ -170,7 +170,7 @@ for aba in wb.sheetnames:
 wb.save(arquivo)
 wb.close()
 
-================= ROTAS =================
+#================= ROTAS =================
 
 @app.route('/Home')
 @login_required
@@ -190,7 +190,7 @@ def planilha_ssh():
 return render_template('index.html', tipo='ssh')
 
 
-================= API MESES =================
+#================= API MESES =================
 
 @app.route('/api/meses')
 @login_required
@@ -214,7 +214,7 @@ resultado = [mes for mes in MESES_ORDEM if mes in abas]
 
 return jsonify(resultado)
 
-================= API DIAS =================
+#================= API DIAS =================
 
 @app.route('/api/dias')
 @login_required
@@ -234,7 +234,7 @@ numero = meses.get(mes.upper(), 1)
 ultimo = calendar.monthrange(ANO_FIXO, numero)[1]
 return jsonify(list(range(1, ultimo + 1)))
 
-================= API SALVAR =================
+#================= API SALVAR =================
 
 @app.route('/api/salvar', methods=['POST'])
 @login_required
@@ -283,7 +283,7 @@ except Exception as e:
     print("ERRO AO SALVAR:", str(e))
     return jsonify({'error': str(e)}), 500
 
-================= API TABELA =================
+#================= API TABELA =================
 
 @app.route('/api/tabela')
 @login_required
@@ -328,7 +328,7 @@ for r in range(2, ws.max_row + 1):
 wb.close()
 return jsonify(dados)
 
-================= RESUMO =================
+#================= RESUMO =================
 
 @app.route('/resumo')
 @login_required
@@ -377,7 +377,7 @@ return render_template(
     resultado=resultado
 )
 
-================= API TOTAL GERAL =================
+#================= API TOTAL GERAL =================
 
 @app.route('/api/mes-total-geral')
 @login_required
@@ -479,7 +479,7 @@ cache_total_geral["tempo"] = tempo_atual
 
 return jsonify(resultado)
 
-================= ROTA BUSCAR INFORMACOES =================
+#================= ROTA BUSCAR INFORMACOES =================
 
 @app.route("/api/info", methods=["POST"])
 def info_video():
@@ -632,7 +632,7 @@ except Exception as e:
         "erro": str(e)
     })
 
-================= OUTRAS ROTAS =================
+#================= OUTRAS ROTAS =================
 
 @app.route("/download")
 def pagina_download():
@@ -674,7 +674,7 @@ return redirect(url_for('planilha_sig'))
 return redirect(url_for('login'))
 
 
-================= RUN =================
+#================= RUN =================
 
 if name == "main":
 port = int(os.environ.get("PORT", 10000))
