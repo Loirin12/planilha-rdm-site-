@@ -36,7 +36,7 @@ app = Flask(name, static_folder='static', template_folder='templates')
 app.secret_key = 'NWanClh3BDY8I67SwHmXjhPQ2We2n2GMbr7KOtRIeJ7s9KMOMp'
 
 
-🔒 CONFIGURAÇÕES PARA NÃO SALVAR LOGIN
+#🔒 CONFIGURAÇÕES PARA NÃO SALVAR LOGIN
 
 app.config.update(
 SESSION_PERMANENT=False,
@@ -479,158 +479,139 @@ cache_total_geral["tempo"] = tempo_atual
 
 return jsonify(resultado)
 
-#================= ROTA BUSCAR INFORMACOES =================
+# ================= CONFIG DOWNLOAD =================
+
+PASTA_DOWNLOAD = "downloads"
+os.makedirs(PASTA_DOWNLOAD, exist_ok=True)
+
+# ================= ROTA INFO =================
 
 @app.route("/api/info", methods=["POST"])
 def info_video():
 
+    try:
 
-try:
+        data = request.get_json()
 
-    data = request.get_json()
-    url = data.get("url")
+        url = data.get("url")
 
-    if not url:
-        return jsonify({"erro": "URL vazia"})
+        if not url:
+            return jsonify({"erro": "URL vazia"})
 
-    ydl_opts = {
-        "quiet": True,
-        "skip_download": True
-    }
+        ydl_opts = {
+            "quiet": True,
+            "skip_download": True
+        }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
-        info = ydl.extract_info(url@app.route("/api/download", methods=["POST"])
+            info = ydl.extract_info(
+                url,
+                download=False
+            )
 
+            return jsonify({
+                "titulo": info.get("title"),
+                "thumbnail": info.get("thumbnail")
+            })
+
+    except Exception as e:
+
+        print("ERRO INFO:", e)
+
+        return jsonify({
+            "erro": str(e)
+        })
+
+
+# ================= ROTA DOWNLOAD =================
+
+@app.route("/api/download", methods=["POST"])
 def download_video():
 
+    url = request.json.get("url")
+    tipo = request.json.get("tipo")
 
-url = request.json.get("url")
-tipo = request.json.get("tipo")
+    print("URL:", url)
+    print("TIPO:", tipo)
 
-print("URL:", url)
-print("TIPO:", tipo)
+    nome = str(uuid.uuid4())
 
-nome = str(uuid.uuid4())
+    if tipo == "audio":
 
-if tipo == "audio":
-
-    caminho = os.path.join(
-        PASTA_DOWNLOAD,
-        f"{nome}.mp3"
-    )
-
-    comando = [
-        "yt-dlp",
-        "-x",
-        "--audio-format",
-        "mp3",
-        "-o",
-        caminho,
-        url
-    ]
-
-else:
-
-    caminho = os.path.join(
-        PASTA_DOWNLOAD,
-        f"{nome}.mp4"
-    )
-
-    comando = [
-        "yt-dlp",
-        "-f",
-        "mp4",
-        "-o",
-        caminho,
-        url
-    ]
-
-resultado = subprocess.run(
-    comando,
-    capture_output=True,
-    text=True
-)
-
-print("STDOUT:", resultado.stdout)
-print("STDERR:", resultado.stderr)
-
-if resultado.returncode != 0:
-    return jsonify({
-        "erro": resultado.stderr
-    }), 500
-
-if not os.path.exists(caminho):
-    return jsonify({
-        "erro": "Arquivo não foi criado"
-    }), 500
-
-from flask import after_this_request
-
-@after_this_request
-def remover_arquivo(response):
-    try:
-        if os.path.exists(caminho):
-            os.remove(caminho)
-    except Exception as e:
-        print("Erro ao remover arquivo:", e)
-    return response
-
-return send_file(
- caminho,
-as_attachment=True,
-download_name=os.path.basename(caminho)
-
-)
-
-
-from flask import request, jsonify
-import yt_dlp
-
-
-@app.route("/api/info", methods=["POST"])
-def info_video():
-
-
-try:
-
-    data = request.get_json()
-
-    url = data.get("url")
-
-    if not url:
-
-        return jsonify({
-            "erro": "URL vazia"
-        })
-
-    ydl_opts = {
-        "quiet": True,
-        "skip_download": True
-    }
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-
-        info = ydl.extract_info(
-            url,
-            download=False
+        caminho = os.path.join(
+            PASTA_DOWNLOAD,
+            f"{nome}.mp3"
         )
 
+        comando = [
+            "yt-dlp",
+            "-x",
+            "--audio-format",
+            "mp3",
+            "-o",
+            caminho,
+            url
+        ]
+
+    else:
+
+        caminho = os.path.join(
+            PASTA_DOWNLOAD,
+            f"{nome}.mp4"
+        )
+
+        comando = [
+            "yt-dlp",
+            "-f",
+            "mp4",
+            "-o",
+            caminho,
+            url
+        ]
+
+    resultado = subprocess.run(
+        comando,
+        capture_output=True,
+        text=True
+    )
+
+    print("STDOUT:", resultado.stdout)
+    print("STDERR:", resultado.stderr)
+
+    if resultado.returncode != 0:
+
         return jsonify({
+            "erro": resultado.stderr
+        }), 500
 
-            "titulo": info.get("title"),
+    if not os.path.exists(caminho):
 
-            "thumbnail": info.get("thumbnail")
+        return jsonify({
+            "erro": "Arquivo não foi criado"
+        }), 500
 
-        })
+    from flask import after_this_request
 
-except Exception as e:
+    @after_this_request
+    def remover_arquivo(response):
 
-    print("ERRO INFO:", e)
+        try:
 
-    return jsonify({
-        "erro": str(e)
-    })
+            if os.path.exists(caminho):
+                os.remove(caminho)
+
+        except Exception as e:
+
+            print("Erro ao remover arquivo:", e)
+
+        return response
+
+    return send_file(
+        caminho,
+        as_attachment=True,
+        download_name=os.path.basename(caminho)
+    )
 
 #================= OUTRAS ROTAS =================
 
