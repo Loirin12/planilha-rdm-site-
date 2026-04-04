@@ -26,7 +26,7 @@
       <a class="nav-link {% if tipo == 'ssh' %}active{% endif %}" href="{{ url_for('planilha_ssh') }}">Planilha SSH</a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" href="{{ url_for('resumo') }}">Diferença P&R</a>
+      <a class="nav-link" href="{{ url_for('resumo') }}">Resumo P&R</a>
     </li>
   </ul>
 
@@ -82,26 +82,15 @@
     </div>
 
   <!-- 🔥 TEXTO NO LADO DIREITO DA TABELA -->
-<div class="rodape-criador">
-    <div class="criador-texto">
-        <small>
-            Desenvolvido por: 
-            <strong>RianZxTr3M / Jorge Do Mequi</strong>
-        </small>
-    </div>
-
-    <div class="botao-download">
-        {% if tipo == 'sig' %}
-          <a href="/baixar-sig" class="btn btn-success">
-            📥 Baixar Planilha SIG
-          </a>
-        {% else %}
-          <a href="/baixar-ssh" class="btn btn-danger">
-            📥 Baixar Planilha SSH
-          </a>
-        {% endif %}
-    </div>
+<div class="d-flex justify-content-end align-items-center mb-2">
+ <div class="criador-texto">
+  <small>Desenvolvido por: <strong>Rian</strong></small>
 </div>
+
+</div>
+
+<table class="table table-bordered">
+
 
   <!-- TABELA -->
   <div class="mt-4">

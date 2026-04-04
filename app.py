@@ -10,9 +10,14 @@ from flask import (
     session,
     flash,
     send_file,
+    Response,
+    stream_with_context,
 )
 
 import subprocess
+import io
+import threading
+import re
 
 from openpyxl import load_workbook, Workbook
 from functools import wraps
@@ -553,12 +558,9 @@ os.makedirs(PASTA_DOWNLOAD, exist_ok=True)
 
 @app.route("/api/info", methods=["POST"])
 def info_video():
-
     try:
         data = request.get_json()
-
         url = data.get("url")
-
         if not url:
             return jsonify({"erro": "URL vazia"})
 
@@ -568,28 +570,42 @@ def info_video():
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
 
-            info = ydl.extract_info(
-                url,
-                download=False,
+            titulo = info.get("title", "Sem título")
+            duracao = info.get("duration", 0) or 0
+            tamanho_video = (
+                f"{info.get('filesize', 0)/1024/1024:.1f} MB"
+                if info.get("filesize")
+                else "N/D"
+            )
+            tamanho_audio = (
+                f"{info.get('filesize', 0)/10/1024/1024:.1f} MB"
+                if info.get("filesize")
+                else "N/D"
+            )
+
+            # Thumbnail melhorado para IG/TikTok/YouTube
+            thumbnails = info.get("thumbnails", [])
+            thumbnail = (
+                thumbnails[0].get("url")
+                if thumbnails
+                else info.get("thumbnail") or None
             )
 
             return jsonify(
                 {
-                    "titulo": info.get("title"),
-                    "thumbnail": info.get("thumbnail"),
+                    "titulo": titulo,
+                    "duracao": f"{int(duracao//60):02d}:{int(duracao%60):02d}",
+                    "tamanho_video": tamanho_video,
+                    "tamanho_audio": tamanho_audio,
+                    "thumbnail": thumbnail,
                 }
             )
 
     except Exception as e:
-
         print("ERRO INFO:", e)
-
-        return jsonify(
-            {
-                "erro": str(e),
-            }
-        )
+        return jsonify({"erro": str(e)})
 
 
 # ================= ROTA DOWNLOAD =================
@@ -597,100 +613,127 @@ def info_video():
 
 @app.route("/api/download", methods=["POST"])
 def download_video():
+    def generate():
+        url = request.json.get("url")
+        tipo = request.json.get("tipo")
+        nome = str(uuid.uuid4())
 
-    url = request.json.get("url")
-    tipo = request.json.get("tipo")
+        if tipo == "audio":
+            caminho = os.path.join(PASTA_DOWNLOAD, f"{nome}.mp3")
+            cmd = [
+                "yt-dlp",
+                "-x",
+                "--audio-format",
+                "mp3",
+                "--newline",
+                "--progress",
+                "-o",
+                caminho,
+                url,
+            ]
+        else:
+            caminho = os.path.join(PASTA_DOWNLOAD, f"{nome}.mp4")
+            cmd = [
+                "yt-dlp",
+                "-f",
+                "best[ext=mp4]",
+                "--newline",
+                "--progress",
+                "-o",
+                caminho,
+                url,
+            ]
 
-    print("URL:", url)
-    print("TIPO:", tipo)
-
-    nome = str(uuid.uuid4())
-
-    if tipo == "audio":
-
-        caminho = os.path.join(
-            PASTA_DOWNLOAD,
-            f"{nome}.mp3",
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
         )
 
-        comando = [
-            "yt-dlp",
-            "-x",
-            "--audio-format",
-            "mp3",
-            "-o",
-            caminho,
-            url,
-        ]
+        downloaded = 0
+        total = 0
+        for line in iter(process.stdout.readline, ""):
+            yield f"data: {line}\n\n"
+            if "[download]" in line:
+                import re
 
-    else:
+                m = re.search(r"(\d+\.?\d*)%", line)
+                if m:
+                    percent = float(m.group(1))
+                    yield f"data: {{percent: {percent}}}\n\n"
 
-        caminho = os.path.join(
-            PASTA_DOWNLOAD,
-            f"{nome}.mp4",
-        )
+            if "[Downloaded" in line or "has already been downloaded" in line:
+                break
 
-        comando = [
-            "yt-dlp",
-            "-f",
-            "mp4",
-            "-o",
-            caminho,
-            url,
-        ]
+        process.wait()
 
-    resultado = subprocess.run(
-        comando,
-        capture_output=True,
-        text=True,
-    )
+        if process.returncode != 0 or not os.path.exists(caminho):
+            yield "data: {error: true}\n\n"
+            return
 
-    print("STDOUT:", resultado.stdout)
-    print("STDERR:", resultado.stderr)
+        # Cleanup after delay
+        import threading
 
-    if resultado.returncode != 0:
-
-        return (
-            jsonify(
-                {
-                    "erro": resultado.stderr,
-                }
-            ),
-            500,
-        )
-
-    if not os.path.exists(caminho):
-
-        return (
-            jsonify(
-                {
-                    "erro": "Arquivo não foi criado",
-                }
-            ),
-            500,
-        )
-
-    from flask import after_this_request
-
-    @after_this_request
-    def remover_arquivo(response):
-
-        try:
-
+        def cleanup():
+            time.sleep(30)
             if os.path.exists(caminho):
                 os.remove(caminho)
 
-        except Exception as e:
+        threading.Thread(target=cleanup, daemon=True).start()
 
-            print("Erro ao remover arquivo:", e)
+        yield f"data: {{complete: true, path: '{caminho}'}}\n\n"
 
-        return response
+    try:
+        data = request.get_json()
+        url = data.get("url")
+        tipo = data.get("tipo", "video")
 
-    return send_file(
-        caminho,
-        as_attachment=True,
-        download_name=os.path.basename(caminho),
-    )
+        nome_uuid = str(uuid.uuid4())
+        extensao = "mp3" if tipo == "audio" else "mp4"
+        caminho = os.path.join(PASTA_DOWNLOAD, f"{nome_uuid}.{extensao}")
+
+        # yt-dlp cmd
+        if tipo == "audio":
+            cmd = ["yt-dlp", "-x", "--audio-format", "mp3", "-o", caminho, url]
+        else:
+            cmd = ["yt-dlp", "-f", "best[ext=mp4]/best", "-o", caminho, url]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+
+        if (
+            result.returncode != 0
+            or not os.path.exists(caminho)
+            or os.path.getsize(caminho) == 0
+        ):
+            return jsonify({"erro": result.stderr[:200] or "yt-dlp failed"}), 500
+
+        title = "video"
+        try:
+            ydl_opts = {"quiet": True}
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                title = re.sub(r"[^\w ]", "", info.get("title", "video")[:50])
+        except:
+            pass
+
+        def cleanup():
+            time.sleep(120)
+            if os.path.exists(caminho):
+                os.remove(caminho)
+
+        threading.Thread(target=cleanup, daemon=True).start()
+
+        return send_file(
+            caminho,
+            as_attachment=True,
+            download_name=f"{title}.{extensao}",
+            mimetype="video/mp4" if tipo == "video" else "audio/mpeg",
+        )
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
 
 
 # ================= OUTRAS ROTAS =================
@@ -701,64 +744,13 @@ def pagina_download():
     return render_template("download.html")
 
 
-@app.route("/api/info", methods=["POST"])
-def info_video():
-    try:
-        data = request.get_json()
-        url = data.get("url")
-        if not url:
-            return jsonify({"erro": "URL vazia"})
-
-        ydl_opts = {
-            "quiet": True,
-            "no_warnings": True,
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            filesize = info.get("filesize") or info.get("filesize_approx", 0)
-            duration = info.get("duration", 0)
-            size_mb = round(filesize / (1024**2), 1) if filesize else "?"
-            duracao = f"{duration//60}:{duration%60:02d}" if duration else "?"
-            formatos = info.get("formats", [])
-            best_audio = next(
-                (
-                    f
-                    for f in formatos
-                    if f.get("acodec") != "none" and f.get("vcodec") == "none"
-                ),
-                None,
-            )
-            best_video = next(
-                (
-                    f
-                    for f in formatos
-                    if f.get("vcodec") != "none" and f.get("acodec") == "none"
-                ),
-                None,
-            )
-            audio_size = (
-                round(best_audio.get("filesize", 0) / (1024**2), 1)
-                if best_audio
-                else "?"
-            )
-            video_size = (
-                round(best_video.get("filesize", 0) / (1024**2), 1)
-                if best_video
-                else "?"
-            )
-
-        return jsonify(
-            {
-                "titulo": info.get("title", "Desconhecido"),
-                "duracao": duracao,
-                "tamanho_video": f"{video_size} MB",
-                "tamanho_audio": f"{audio_size} MB",
-            }
-        )
-
-    except Exception as e:
-        print("ERRO INFO:", e)
-        return jsonify({"erro": str(e)}), 400
+@app.route("/api/download-final", methods=["POST"])
+def download_final():
+    data = request.json
+    path = data.get("path")
+    if not os.path.exists(path):
+        return "Arquivo não encontrado", 404
+    return send_file(path, as_attachment=True)
 
 
 @app.route("/calculadora")
@@ -807,5 +799,5 @@ def index():
 # ================= RUN =================
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
