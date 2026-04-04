@@ -473,85 +473,129 @@ def info_video():
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
-            info = ydl.extract_info(url, download=False)
-
-            return jsonify({
-                "titulo": info.get("title"),
-                "thumbnail": info.get("thumbnail")
-            })
-
-    except Exception as e:
-
-        print("ERRO INFO:", e)
-
-        return jsonify({
-            "erro": str(e)
-        })
-
-@app.route("/api/download", methods=["POST"])
+            info = ydl.extract_info(url@app.route("/api/download", methods=["POST"])
 def download_video():
+
+    url = request.json.get("url")
+    tipo = request.json.get("tipo")
+
+    print("URL:", url)
+    print("TIPO:", tipo)
+
+    nome = str(uuid.uuid4())
+
+    if tipo == "audio":
+
+        caminho = os.path.join(
+            PASTA_DOWNLOAD,
+            f"{nome}.mp3"
+        )
+
+        comando = [
+            "yt-dlp",
+            "-x",
+            "--audio-format",
+            "mp3",
+            "-o",
+            caminho,
+            url
+        ]
+
+    else:
+
+        caminho = os.path.join(
+            PASTA_DOWNLOAD,
+            f"{nome}.mp4"
+        )
+
+        comando = [
+            "yt-dlp",
+            "-f",
+            "mp4",
+            "-o",
+            caminho,
+            url
+        ]
+
+    resultado = subprocess.run(
+        comando,
+        capture_output=True,
+        text=True
+    )
+
+    print("STDOUT:", resultado.stdout)
+    print("STDERR:", resultado.stderr)
+
+    if resultado.returncode != 0:
+        return jsonify({
+            "erro": resultado.stderr
+        }), 500
+
+    if not os.path.exists(caminho):
+        return jsonify({
+            "erro": "Arquivo não foi criado"
+        }), 500
+
+    from flask import after_this_request
+
+    @after_this_request
+    def remover_arquivo(response):
+        try:
+            if os.path.exists(caminho):
+                os.remove(caminho)
+        except Exception as e:
+            print("Erro ao remover arquivo:", e)
+        return response
+
+    return send_file(
+     caminho,
+    as_attachment=True,
+    download_name=os.path.basename(caminho)
+
+)
+
+from flask import request, jsonify
+import yt_dlp
+
+
+@app.route("/api/info", methods=["POST"])
+def info_video():
 
     try:
 
         data = request.get_json()
 
         url = data.get("url")
-        tipo = data.get("tipo")
 
-        pasta = "downloads"
+        if not url:
 
-        os.makedirs(pasta, exist_ok=True)
+            return jsonify({
+                "erro": "URL vazia"
+            })
 
-        # PRIMEIRO PEGA O NOME REAL DO VÍDEO
-        with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
-            info = ydl.extract_info(url, download=False)
-
-        titulo = info.get("title", "arquivo")
-
-        # Remove caracteres inválidos
-        titulo = "".join(
-            c for c in titulo
-            if c.isalnum() or c in (" ", "-", "_")
-        ).strip()
-
-        if tipo == "audio":
-
-            arquivo = f"{pasta}/{titulo}.mp3"
-
-            ydl_opts = {
-                "format": "bestaudio/best",
-                "outtmpl": arquivo,
-                "quiet": True,
-                "postprocessors": [
-                    {
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": "mp3"
-                    }
-                ]
-            }
-
-        else:
-
-            arquivo = f"{pasta}/{titulo}.mp4"
-
-            ydl_opts = {
-                "format": "best",
-                "outtmpl": arquivo,
-                "quiet": True
-            }
+        ydl_opts = {
+            "quiet": True,
+            "skip_download": True
+        }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
 
-        return send_file(
-            arquivo,
-            as_attachment=True,
-            download_name=os.path.basename(arquivo)
-        )
+            info = ydl.extract_info(
+                url,
+                download=False
+            )
+
+            return jsonify({
+
+                "titulo": info.get("title"),
+
+                "thumbnail": info.get("thumbnail")
+
+            })
 
     except Exception as e:
 
-        print("ERRO DOWNLOAD:", e)
+        print("ERRO INFO:", e)
 
         return jsonify({
             "erro": str(e)
