@@ -18,8 +18,9 @@ import datetime
 import requests
 from bs4 import BeautifulSoup
 import subprocess
+import time
+import yt_dlp
 import uuid
-import os
 from flask import request, jsonify, send_file
 
 # ================= CACHE =================
