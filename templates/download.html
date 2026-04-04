@@ -1,66 +1,349 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
+    <title>Download Multiplataforma</title>
+    <meta charset="UTF-8">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto 80px;  /* Espaço pro rodapé */
+            background: rgba(255,255,255,0.95);
+            padding: 40px; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+        h1 { 
+            text-align: center; 
+            color: #1e3c72; 
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .subtitle { 
+            text-align: center; 
+            color: #666; 
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        textarea { 
+            width: 100%; 
+            height: 180px; 
+            padding: 20px; 
+            font-size: 16px; 
+            border: 3px solid #e0e6ed; 
+            border-radius: 15px; 
+            resize: vertical;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+        textarea:focus { 
+            outline: none; 
+            border-color: #1e3c72; 
+            box-shadow: 0 0 20px rgba(30,60,114,0.2);
+        }
+        .controls { 
+            display: flex; 
+            gap: 15px; 
+            flex-wrap: wrap; 
+            margin: 25px 0;
+            justify-content: center;
+            align-items: center;
+        }
+        select { 
+            padding: 15px 20px; 
+            font-size: 16px; 
+            border: 2px solid #e0e6ed; 
+            border-radius: 12px; 
+            background: white;
+            min-width: 160px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button { 
+            padding: 15px 30px; 
+            font-size: 18px; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        #btnAnalisar { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; 
+        }
+        #btnAnalisar:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.4); }
+        #btnDownload { 
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white; 
+            min-width: 200px;
+        }
+        #btnDownload:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,107,0.4); }
+        button:disabled { 
+            background: #ccc !important; 
+            cursor: not-allowed; 
+            transform: none;
+            box-shadow: none;
+        }
+        #loading { 
+            display: none; 
+            text-align: center; 
+            color: #1e3c72; 
+            font-size: 20px; 
+            margin: 30px 0; 
+            padding: 20px;
+        }
+        .spinner { 
+            border: 4px solid #f3f3f3; 
+            border-top: 4px solid #1e3c72; 
+            border-radius: 50%; 
+            width: 40px; 
+            height: 40px; 
+            animation: spin 1s linear infinite; 
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #info { 
+            margin: 25px 0; 
+            display: none; 
+        }
+        .videos-grid { display: flex; flex-direction: column; gap: 15px; }
+        .video-item { 
+            padding: 20px; 
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f4fd 100%); 
+            border-radius: 15px; 
+            border-left: 5px solid #1e3c72;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .video-item:hover { transform: translateX(5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        .video-item.erro { border-left-color: #ff6b6b; background: linear-gradient(135deg, #fff5f5 0%, #ffeaea 100%); }
+        .video-titulo { font-size: 1.3em; font-weight: bold; color: #1e3c72; margin-bottom: 8px; }
+        .video-detalhes { color: #666; font-size: 0.95em; margin-bottom: 5px; }
+        .video-url { font-size: 0.85em; color: #999; word-break: break-all; }
+        .exemplo { 
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%); 
+            padding: 20px; 
+            border-radius: 12px; 
+            margin: 20px 0; 
+            border-left: 5px solid #28a745;
+        }
+        .exemplo strong { color: #155724; }
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+        /* 🎨 RODAPÉ PERSONALIZADO */
+        .footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background: rgba(30, 60, 114, 0.95);
+            color: white;
+            text-align: center;
+            padding: 15px 0;
+            font-size: 14px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .footer::before {
+            content: '👨‍💻 Criador: ';
+            font-size: 16px;
+            margin-right: 5px;
+        }
+        .criador-nome {
+            color: #ffd700;
+            font-weight: bold;
+            font-size: 18px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            letter-spacing: 1px;
+        }
+        .footer a {
+            color: #ffd700;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 Download Multiplataforma</h1>
+        <p class="subtitle">YouTube • TikTok • Instagram • Facebook • Twitter • Twitch • E MUITO MAIS!</p>
+        
+        <div class="exemplo">
+            📱 <strong>Como usar:</strong><br>
+            1️⃣ Cole um ou mais links (um por linha)<br>
+            2️⃣ Clique "🔍 Analisar"<br>
+            3️⃣ Escolha formato e clique "⬇️ Baixar Tudo"<br><br>
+            <strong>Exemplos:</strong><br>
+            - https://www.youtube.com/watch?v=dQw4w9WgXcQ<br>
+            - https://www.tiktok.com/@user/video/123456789<br>
+            - https://www.instagram.com/reel/ABC123/
+        </div>
 
-<title>Download Multiplataforma</title>
+        <textarea id="urls" placeholder="Cole seus links aqui... 
+https://www.youtube.com/watch?v=abc123
+https://www.tiktok.com/@user/video/456
+https://www.instagram.com/reel/def789/"></textarea>
+        
+        <div class="controls">
+            <select id="tipo">
+                <option value="video">📹 Vídeo HD (MP4)</option>
+                <option value="audio">🎵 Áudio HQ (MP3)</option>
+            </select>
+            <button id="btnAnalisar" onclick="buscarInfo()">🔍 Analisar Links</button>
+            <button id="btnDownload" onclick="baixar()">⬇️ Baixar Tudo</button>
+        </div>
 
-<!-- Favicon (imagem do site na aba do navegador) -->
-<link rel="icon" type="image/png" href="/static/logo.png">
+        <div id="loading">
+            <div class="spinner"></div>
+            ⏳ Processando seus links...
+        </div>
+        
+        <div id="info"></div>
+    </div>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 🎨 RODAPÉ COM CRIADOR -->
+    <footer class="footer">
+        👨‍💻 <span class="criador-nome">RianZxTr3M</span>
+    </footer>
 
-<style>
+    <script>
+    let videosInfo = [];
 
-body {
+    async function buscarInfo() {
+        const urlsText = document.getElementById('urls').value.trim();
+        if (!urlsText) return alert('📝 Cole pelo menos um link!');
 
-    background: linear-gradient(135deg, #020617, #0f172a);
+        const urls = urlsText.split('\n').map(u => u.trim()).filter(u => u);
+        if (!urls.length) return alert('❌ Links inválidos!');
 
-    color: white;
+        const loading = document.getElementById('loading');
+        const info = document.getElementById('info');
+        const btnDownload = document.getElementById('btnDownload');
+        
+        loading.style.display = 'block';
+        info.style.display = 'none';
+        btnDownload.disabled = true;
 
-    min-height: 100vh;
+        try {
+            const response = await fetch('/api/info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ urls })
+            });
+            
+            videosInfo = await response.json();
+            
+            let html = `<h3>📋 ${videosInfo.length} ${videosInfo.length === 1 ? 'vídeo' : 'vídeos'} encontrado(s):</h3>`;
+            videosInfo.forEach((video, i) => {
+                if (video.erro) {
+                    html += `<div class="video-item erro">
+                        <div class="video-titulo">❌ Erro</div>
+                        <div class="video-detalhes">${video.url}</div>
+                        <div class="video-url">${video.erro}</div>
+                    </div>`;
+                } else {
+                    html += `<div class="video-item">
+                        <div class="video-titulo">${video.titulo}</div>
+                        <div class="video-detalhes">
+                            🕒 ${video.duracao} | 🌐 ${video.plataforma}
+                        </div>
+                        <div class="video-url">${video.url}</div>
+                    </div>`;
+                }
+            });
+            
+            info.innerHTML = html;
+            info.style.display = 'block';
+            btnDownload.disabled = false;
+            
+        } catch (e) {
+            alert('❌ Erro de conexão: ' + e.message);
+        }
+        
+        loading.style.display = 'none';
+    }
 
-    display: flex;
+    async function baixar() {
+        const urlsText = document.getElementById('urls').value.trim();
+        const urls = urlsText.split('\n').map(u => u.trim()).filter(u => u);
+        const tipo = document.getElementById('tipo').value;
+        
+        if (!urls.length) return alert('📝 Cole links primeiro!');
+        
+        if (!confirm(`⬇️ Baixar ${urls.length} vídeo(s)?`)) return;
+        
+        const loading = document.getElementById('loading');
+        const btnDownload = document.getElementById('btnDownload');
+        
+        loading.style.display = 'block';
+        btnDownload.disabled = true;
+        btnDownload.textContent = '⏳ Baixando...';
 
-    align-items: center;
+        try {
+            const response = await fetch('/api/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ urls, tipo })
+            });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `Download_Multiplataforma_${new Date().toISOString().slice(0,10)}`;
+                
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (filenameMatch) filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                alert('✅ Download iniciado com sucesso!');
+            } else {
+                const erro = await response.json();
+                alert('❌ Erro: ' + erro.erro);
+            }
+        } catch (e) {
+            alert('❌ Erro de conexão: ' + e.message);
+        }
+        
+        loading.style.display = 'none';
+        btnDownload.disabled = false;
+        btnDownload.textContent = '⬇️ Baixar Tudo';
+    }
 
-    justify-content: center;
+    // Atalhos
+    document.getElementById('urls').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            e.preventDefault();
+            buscarInfo();
+        }
+    });
 
-}
-
-.card-box {
-
-    background: #020617;
-
-    border-radius: 20px;
-
-    padding: 30px;
-
-    width: 100%;
-
-    max-width: 700px;
-
-    box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-
-}
-
-.progress {
-
-    height: 25px;
-
-}
-
-footer {
-
-    position: fixed;
-
-    bottom: 10px;
-
-    width: 100%;
-
-    text-align: center;
+    // Auto-foco
+    document.getElementById('urls').focus();
+    </script>
+</body>
+</html>    text-align: center;
 
     font-size: 14px;
 
