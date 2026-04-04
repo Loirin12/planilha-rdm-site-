@@ -14,12 +14,15 @@ from flask import (
 from openpyxl import load_workbook, Workbook
 from functools import wraps
 import os
+import json
 import calendar
 import datetime
-import time
-import yt_dlp
-import uuid
+import requests
+from bs4 import BeautifulSoup
 import subprocess
+import uuid
+import os
+from flask import request, jsonify, send_file
 
 # ================= CACHE =================
 cache_total_geral = {"dados": None, "tempo": 0}
