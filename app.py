@@ -61,7 +61,7 @@ def no_cache(response):
 USUARIOS = {'admin': 'sig@2025'}
 
 
-================= CONFIG EXCEL =================
+#================= CONFIG EXCEL =================
 
 ARQUIVO_SIG = 'dados.xlsx'
 ARQUIVO_SSH = 'dadossh.xlsx'
