@@ -701,6 +701,66 @@ def pagina_download():
     return render_template("download.html")
 
 
+@app.route("/api/info", methods=["POST"])
+def info_video():
+    try:
+        data = request.get_json()
+        url = data.get("url")
+        if not url:
+            return jsonify({"erro": "URL vazia"})
+
+        ydl_opts = {
+            "quiet": True,
+            "no_warnings": True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            filesize = info.get("filesize") or info.get("filesize_approx", 0)
+            duration = info.get("duration", 0)
+            size_mb = round(filesize / (1024**2), 1) if filesize else "?"
+            duracao = f"{duration//60}:{duration%60:02d}" if duration else "?"
+            formatos = info.get("formats", [])
+            best_audio = next(
+                (
+                    f
+                    for f in formatos
+                    if f.get("acodec") != "none" and f.get("vcodec") == "none"
+                ),
+                None,
+            )
+            best_video = next(
+                (
+                    f
+                    for f in formatos
+                    if f.get("vcodec") != "none" and f.get("acodec") == "none"
+                ),
+                None,
+            )
+            audio_size = (
+                round(best_audio.get("filesize", 0) / (1024**2), 1)
+                if best_audio
+                else "?"
+            )
+            video_size = (
+                round(best_video.get("filesize", 0) / (1024**2), 1)
+                if best_video
+                else "?"
+            )
+
+        return jsonify(
+            {
+                "titulo": info.get("title", "Desconhecido"),
+                "duracao": duracao,
+                "tamanho_video": f"{video_size} MB",
+                "tamanho_audio": f"{audio_size} MB",
+            }
+        )
+
+    except Exception as e:
+        print("ERRO INFO:", e)
+        return jsonify({"erro": str(e)}), 400
+
+
 @app.route("/calculadora")
 @login_required
 def calculadora():
