@@ -20,6 +20,8 @@ import time
 import yt_dlp
 import os
 import uuid
+import subprocess
+import os
 
 # ================= CACHE =================
 cache_total_geral = {"dados": None, "tempo": 0}
@@ -456,15 +458,14 @@ def api_mes_total_geral():
     return jsonify(resultado)
 # ================= ROTA BUSCAR INFORMACOES =================
 @app.route("/api/info", methods=["POST"])
+@login_required
 def info_video():
-
     try:
-
         data = request.get_json()
         url = data.get("url")
 
         if not url:
-            return jsonify({"erro": "URL vazia"})
+            return jsonify({"erro": "URL vazia"}), 400
 
         ydl_opts = {
             "quiet": True,
@@ -472,135 +473,104 @@ def info_video():
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-
-            info = ydl.extract_info(url@app.route("/api/download", methods=["POST"])
-def download_video():
-
-    url = request.json.get("url")
-    tipo = request.json.get("tipo")
-
-    print("URL:", url)
-    print("TIPO:", tipo)
-
-    nome = str(uuid.uuid4())
-
-    if tipo == "audio":
-
-        caminho = os.path.join(
-            PASTA_DOWNLOAD,
-            f"{nome}.mp3"
-        )
-
-        comando = [
-            "yt-dlp",
-            "-x",
-            "--audio-format",
-            "mp3",
-            "-o",
-            caminho,
-            url
-        ]
-
-    else:
-
-        caminho = os.path.join(
-            PASTA_DOWNLOAD,
-            f"{nome}.mp4"
-        )
-
-        comando = [
-            "yt-dlp",
-            "-f",
-            "mp4",
-            "-o",
-            caminho,
-            url
-        ]
-
-    resultado = subprocess.run(
-        comando,
-        capture_output=True,
-        text=True
-    )
-
-    print("STDOUT:", resultado.stdout)
-    print("STDERR:", resultado.stderr)
-
-    if resultado.returncode != 0:
-        return jsonify({
-            "erro": resultado.stderr
-        }), 500
-
-    if not os.path.exists(caminho):
-        return jsonify({
-            "erro": "Arquivo não foi criado"
-        }), 500
-
-    from flask import after_this_request
-
-    @after_this_request
-    def remover_arquivo(response):
-        try:
-            if os.path.exists(caminho):
-                os.remove(caminho)
-        except Exception as e:
-            print("Erro ao remover arquivo:", e)
-        return response
-
-    return send_file(
-     caminho,
-    as_attachment=True,
-    download_name=os.path.basename(caminho)
-
-)
-
-from flask import request, jsonify
-import yt_dlp
-
-
-@app.route("/api/info", methods=["POST"])
-def info_video():
-
-    try:
-
-        data = request.get_json()
-
-        url = data.get("url")
-
-        if not url:
-
+            info = ydl.extract_info(url, download=False)
+            
             return jsonify({
-                "erro": "URL vazia"
-            })
-
-        ydl_opts = {
-            "quiet": True,
-            "skip_download": True
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-
-            info = ydl.extract_info(
-                url,
-                download=False
-            )
-
-            return jsonify({
-
-                "titulo": info.get("title"),
-
+                "titulo": info.get("title", "Sem título"),
+                "duracao": str(datetime.timedelta(seconds=int(info.get("duration", 0)))),
                 "thumbnail": info.get("thumbnail")
-
             })
 
     except Exception as e:
-
         print("ERRO INFO:", e)
+        return jsonify({"erro": str(e)}), 500
 
-        return jsonify({
-            "erro": str(e)
-        })
+# ================= ROTA DOWNLOAD (FINAL - COM NOME REAL) =================
+@app.route("/api/download", methods=["POST"])
+@login_required
+def download_video():
+    try:
+        data = request.get_json()
+        url = data.get("url")
+        tipo = data.get("tipo")
 
+        if not url:
+            return jsonify({"erro": "URL vazia"}), 400
+
+        nome_uuid = str(uuid.uuid4())
+        
+        # PRIMEIRO: Pega informações do vídeo
+        ydl_opts_info = {"quiet": True, "skip_download": True}
+        with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
+            info = ydl.extract_info(url, download=False)
+            titulo = info.get("title", "video")
+            # Limpa nome para arquivo válido
+            nome_arquivo = "".join(c for c in titulo if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            nome_arquivo = nome_arquivo[:50]  # Limita tamanho
+
+        # SEGUNDO: Faz download com nome temporário
+        if tipo == "audio":
+            caminho_temp = os.path.join(PASTA_DOWNLOAD, f"{nome_uuid}_temp.%(ext)s")
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'outtmpl': caminho_temp,
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+            }
+        else:  # video
+            caminho_temp = os.path.join(PASTA_DOWNLOAD, f"{nome_uuid}_temp.%(ext)s")
+            ydl_opts = {
+                'format': 'best[ext=mp4]/best',
+                'outtmpl': caminho_temp,
+            }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+        # Encontra arquivo baixado
+        arquivos = [f for f in os.listdir(PASTA_DOWNLOAD) if nome_uuid in f]
+        if not arquivos:
+            return jsonify({"erro": "Falha no download"}), 500
+        
+        arquivo_temp = os.path.join(PASTA_DOWNLOAD, arquivos[0])
+        
+        if not os.path.exists(arquivo_temp):
+            return jsonify({"erro": "Arquivo não encontrado"}), 500
+
+        # NOME FINAL COM TÍTULO REAL
+        extensao = 'mp3' if tipo == "audio" else 'mp4'
+        nome_final = f"{nome_arquivo}.{extensao}"
+        caminho_final = os.path.join(PASTA_DOWNLOAD, nome_final)
+
+        # Renomeia para nome final
+        os.rename(arquivo_temp, caminho_final)
+
+        # ENVIA COMO PLANILHA (download direto)
+        response = send_file(
+            caminho_final,
+            as_attachment=True,
+            download_name=nome_final,
+            mimetype='application/octet-stream'
+        )
+
+        # Remove após download
+        @after_this_request
+        def remover_arquivo(resp):
+            try:
+                if os.path.exists(caminho_final):
+                    os.remove(caminho_final)
+            except Exception as e:
+                print("Erro ao remover:", e)
+            return resp
+
+        return response
+
+    except Exception as e:
+        print("ERRO DOWNLOAD:", str(e))
+        return jsonify({"erro": str(e)}), 500
 # ================= OUTRAS ROTAS =================
 @app.route("/download")
 def pagina_download():
