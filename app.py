@@ -31,6 +31,10 @@ TEMPO_CACHE = 300  # 5 minutos
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = 'NWanClh3BDY8I67SwHmXjhPQ2We2n2GMbr7KOtRIeJ7s9KMOMp'
 
+# ================= CONFIG downloads ================
+PASTA_DOWNLOAD = "downloads"
+os.makedirs(PASTA_DOWNLOAD, exist_ok=True)
+
 # 🔒 CONFIGURAÇÕES PARA NÃO SALVAR LOGIN
 app.config.update(
     SESSION_PERMANENT=False,
