@@ -1,40 +1,4 @@
-# ================= IMPORTAÇÕES =================
-
-from flask import (
-    Flask,
-    render_template,
-    jsonify,
-    request,
-    redirect,
-    url_for,
-    session,
-    flash,
-    send_file,
-    Response,
-    stream_with_context,
-)
-
-import subprocess
-import io
-import threading
-import re
-
-from openpyxl import load_workbook, Workbook
-from functools import wraps
-import os
-import calendar
-import datetime
-import time
-import yt_dlp
-import uuid
-
-
-# ================= CACHE =================
-
-cache_total_geral = {"dados": None, "tempo": 0}
-TEMPO_CACHE = 300  # 5 minutos
-
-
+https://youtu.be/gUpGTRR4Tt4?si=v7vCE6ddjEahc5yz
 # ================= CONFIG FLASK =================
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -799,5 +763,5 @@ def index():
 # ================= RUN =================
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
