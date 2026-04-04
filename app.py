@@ -461,7 +461,7 @@ def api_mes_total_geral():
 
     return jsonify(resultado)
 # ================= ROTA BUSCAR INFORMACOES =================
-@app.route("/api/info", methods=["POST"])
+", methods=["POST"])
 @login_required
 def info_video():
     try:
@@ -490,6 +490,7 @@ def info_video():
         return jsonify({"erro": str(e)}), 500
 
 # ================= ROTA DOWNLOAD (FINAL - COM NOME REAL) =================
+# ================= ROTA INFO - MULTI + QUALQUER SITE =================
 @app.route("/api/info", methods=["POST"])
 @login_required
 def info_video():
@@ -513,7 +514,7 @@ def info_video():
                     resultado.append({
                         "url": url,
                         "titulo": info.get("title", "Sem título"),
-                        "duracao": str(datetime.timedelta(seconds=int(info.get("duration", 0)))),
+                        "duracao": str(timedelta(seconds=int(info.get("duration", 0)))),
                         "thumbnail": info.get("thumbnail"),
                         "plataforma": info.get("uploader", "Desconhecida")
                     })
@@ -526,9 +527,10 @@ def info_video():
         return jsonify(resultado)
 
     except Exception as e:
+        print("ERRO INFO:", e)
         return jsonify({"erro": str(e)}), 500
 
-# ================= ROTA DOWNLOAD (MÚLTIPLO + QUALQUER SITE) =================
+# ================= ROTA DOWNLOAD - MULTI + NOME REAL =================
 @app.route("/api/download", methods=["POST"])
 @login_required
 def download_video():
