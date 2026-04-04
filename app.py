@@ -1,4 +1,3 @@
-# ================= IMPORTAÇÕES =================
 from flask import (
     Flask,
     render_template,
@@ -7,8 +6,7 @@ from flask import (
     redirect,
     url_for,
     session,
-    flash,
-    send_file
+    flash
 )
 
 from openpyxl import load_workbook, Workbook
