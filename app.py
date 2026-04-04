@@ -697,9 +697,26 @@ def download_video():
 
         # yt-dlp cmd
         if tipo == "audio":
-            cmd = ["yt-dlp", "-x", "--audio-format", "mp3", "-o", caminho, url]
+            cmd = [
+                "yt-dlp",
+                "--cookies-from-browser=chrome",
+                "-x",
+                "--audio-format",
+                "mp3",
+                "-o",
+                caminho,
+                url,
+            ]
         else:
-            cmd = ["yt-dlp", "-f", "best[ext=mp4]/best", "-o", caminho, url]
+            cmd = [
+                "yt-dlp",
+                "--cookies-from-browser=chrome",
+                "-f",
+                "best[ext=mp4]/best",
+                "-o",
+                caminho,
+                url,
+            ]
 
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
 
