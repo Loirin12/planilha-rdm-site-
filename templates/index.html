@@ -81,12 +81,21 @@
       <button id="salvar" class="btn btn-primary">Salvar / Atualizar</button>
     </div>
 
-  <!-- 🔥 TEXTO NO LADO DIREITO DA TABELA -->
-<div class="d-flex justify-content-end align-items-center mb-2">
+  <!-- Creator + small download button (right-aligned row) -->
+<div class="d-flex justify-content-end align-items-center mb-3 gap-2">
  <div class="criador-texto">
   <small>Desenvolvido por: <strong>Rian</strong></small>
-</div>
-
+ </div>
+ {% if tipo == 'sig' %}
+ <a href="/baixar-sig" class="btn btn-success btn-sm ms-2" target="_blank">
+  📥 SIG
+ </a>
+ {% endif %}
+ {% if tipo == 'ssh' %}
+ <a href="/baixar-ssh" class="btn btn-primary btn-sm ms-2" target="_blank">
+  📥 SSH
+ </a>
+ {% endif %}
 </div>
 
 <table class="table table-bordered">

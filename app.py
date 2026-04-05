@@ -567,6 +567,7 @@ def info_video():
         ydl_opts = {
             "quiet": True,
             "skip_download": True,
+            "cookiesfrombrowser": ["chrome"],
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -607,21 +608,17 @@ def info_video():
         print("ERRO INFO:", e)
         return jsonify({"erro": str(e)})
 
+        # ================= ROTA DOWNLOAD =================
 
-# ================= ROTA DOWNLOAD =================
-
-
-@app.route("/api/download", methods=["POST"])
-def download_video():
-    def generate():
-        url = request.json.get("url")
         tipo = request.json.get("tipo")
         nome = str(uuid.uuid4())
 
         if tipo == "audio":
             caminho = os.path.join(PASTA_DOWNLOAD, f"{nome}.mp3")
             cmd = [
-                "yt-dlp",
+                "python",
+                "-m",
+                "yt_dlp",
                 "-x",
                 "--audio-format",
                 "mp3",
@@ -634,7 +631,9 @@ def download_video():
         else:
             caminho = os.path.join(PASTA_DOWNLOAD, f"{nome}.mp4")
             cmd = [
-                "yt-dlp",
+                "python",
+                "-m",
+                "yt_dlp",
                 "-f",
                 "best[ext=mp4]",
                 "--newline",
@@ -698,7 +697,9 @@ def download_video():
         # yt-dlp cmd
         if tipo == "audio":
             cmd = [
-                "yt-dlp",
+                "python",
+                "-m",
+                "yt_dlp",
                 "--cookies-from-browser=chrome",
                 "-x",
                 "--audio-format",
@@ -709,7 +710,9 @@ def download_video():
             ]
         else:
             cmd = [
-                "yt-dlp",
+                "python",
+                "-m",
+                "yt_dlp",
                 "--cookies-from-browser=chrome",
                 "-f",
                 "best[ext=mp4]/best",
