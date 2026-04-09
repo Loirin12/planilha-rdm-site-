@@ -377,6 +377,9 @@ def api_tabela():
 @app.route("/resumo")
 @login_required
 def resumo():
+    import os
+    from openpyxl import load_workbook
+
     MESES_VALIDOS = [
         "JANEIRO",
         "FEVEREIRO",
@@ -394,41 +397,78 @@ def resumo():
 
     def soma_coluna(arquivo, coluna):
         total = 0
-        if not os.path.exists(arquivo):
-            return 0
 
-        wb = load_workbook(arquivo, data_only=True)
+        try:
+            # Verificação segura do arquivo
+            if not arquivo:
+                print("Arquivo inválido:", arquivo)
+                return 0
 
-        for aba in wb.sheetnames:
-            if aba.upper() not in MESES_VALIDOS:
-                continue
+            if not os.path.exists(arquivo):
+                print("Arquivo não encontrado:", arquivo)
+                return 0
 
-            ws = wb[aba]
-            for r in range(2, ws.max_row + 1):
-                v = ws.cell(row=r, column=coluna).value
-                if v not in (None, ""):
-                    try:
-                        total += float(str(v).replace(",", "."))
-                    except:
-                        pass
+            wb = load_workbook(arquivo, data_only=True)
 
-        wb.close()
+            print("Arquivo aberto:", arquivo)
+            print("Abas encontradas:", wb.sheetnames)
+
+            for aba in wb.sheetnames:
+
+                # Aceita nomes como MAIO, MAIO5, JUNHO6 etc.
+                if not any(aba.upper().startswith(mes) for mes in MESES_VALIDOS):
+                    continue
+
+                ws = wb[aba]
+
+                for r in range(2, ws.max_row + 1):
+                    v = ws.cell(row=r, column=coluna).value
+
+                    if v not in (None, ""):
+                        try:
+                            total += float(str(v).replace(",", "."))
+                        except Exception as e:
+                            print(
+                                f"Erro ao converter valor '{v}' na aba {aba}, linha {r}:",
+                                e
+                            )
+
+            wb.close()
+
+        except Exception as e:
+            print("Erro ao processar arquivo:", arquivo)
+            print("Detalhes:", e)
+
         return total
 
-    total_sig_pr = soma_coluna(ARQUIVO_SIG, 3)
-    total_ssh_pr = soma_coluna(ARQUIVO_SSH, 3)
-    total_sig_css = soma_coluna(ARQUIVO_SIG, 6)
+    try:
+        # Totais
+        total_sig_pr = soma_coluna(ARQUIVO_SIG, 3)
+        total_ssh_pr = soma_coluna(ARQUIVO_SSH, 3)
+        total_sig_css = soma_coluna(ARQUIVO_SIG, 6)
 
-    resultado = int(total_sig_pr - total_ssh_pr)
+        resultado = int(total_sig_pr - total_ssh_pr)
 
-    return render_template(
-        "resumo.html",
-        total_sig=int(total_sig_pr),
-        total_ssh=int(total_ssh_pr),
-        total_css=int(total_sig_css),
-        resultado=resultado,
-    )
+        return render_template(
+            "resumo.html",
+            total_sig=int(total_sig_pr),
+            total_ssh=int(total_ssh_pr),
+            total_css=int(total_sig_css),
+            resultado=resultado,
+        )
 
+    except Exception as e:
+        print("Erro geral na rota /resumo:")
+        print(e)
+
+        # fallback para evitar erro 500
+        return render_template(
+            "resumo.html",
+            total_sig=0,
+            total_ssh=0,
+            total_css=0,
+            resultado=0,
+        )
 
 # ================= API TOTAL GERAL =================
 
