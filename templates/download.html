@@ -288,16 +288,24 @@ async function baixar() {
         const timeoutId = setTimeout(() => controller.abort(), 60000);
         
         const response = await fetch('/api/download', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: link, tipo: formato }),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({url: link, tipo: formato})
+})
         
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+            let errorData;
+            try {
+                errorData = await response.json();
+            } catch {
+                errorData = { erro: `Erro HTTP ${response.status}` };
+            }
             throw new Error(errorData.erro || 'Erro do servidor');
+        }
+        
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('video') && !contentType.includes('audio') && !contentType.includes('octet')) {
+            throw new Error('Resposta inválida - esperado arquivo de mídia');
         }
         
         const blob = await response.blob();
@@ -312,7 +320,7 @@ async function baixar() {
         document.body.removeChild(a);
         URL.revokeObjectURL(urlDownload);
 
-        status.textContent = 'Download concluído!';
+        status.textContent = '✅ Download concluído!';
         progresso.style.width = '100%';
         setTimeout(() => { btn.disabled = false; icon.className = 'fas fa-check'; }, 2000);
     } catch (error) {

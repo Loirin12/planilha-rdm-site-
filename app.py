@@ -70,6 +70,22 @@ ARQUIVO_SIG = "dados.xlsx"
 ARQUIVO_SSH = "dadossh.xlsx"
 ANO_FIXO = 2026
 
+# ================= MESES GLOBAIS =================
+MESES_VALIDOS = [
+    "JANEIRO",
+    "FEVEREIRO",
+    "MARÇO",
+    "ABRIL",
+    "MAIO",
+    "JUNHO",
+    "JULHO",
+    "AGOSTO",
+    "SETEMBRO",
+    "OUTUBRO",
+    "NOVEMBRO",
+    "DEZEMBRO",
+]
+
 
 # ================= LOGIN =================
 
@@ -97,12 +113,12 @@ def login():
 
 def login_required(f):
     @wraps(f)
-    def wrap(*args, **kwargs):
+    def decorated_function(*args, **kwargs):
         if "usuario" not in session:
             return redirect(url_for("login"))
         return f(*args, **kwargs)
 
-    return wrap
+    return decorated_function
 
 
 # ================= HELPERS =================
@@ -183,6 +199,75 @@ def corrigir_zeros(arquivo):
 
             if ws.cell(row=r, column=7).value in (None, ""):
                 ws.cell(row=r, column=7, value=0)
+
+    wb.save(arquivo)
+    wb.close()
+
+
+def soma_coluna(arquivo, coluna):
+    """Soma apenas abas dos 12 meses com dados (max_row > 1)"""
+    if not os.path.exists(arquivo):
+        print(f"soma_coluna: {arquivo} não existe")
+        return 0
+
+    MESES_ORDEM = [
+        "JANEIRO",
+        "FEVEREIRO",
+        "MARÇO",
+        "ABRIL",
+        "MAIO",
+        "JUNHO",
+        "JULHO",
+        "AGOSTO",
+        "SETEMBRO",
+        "OUTUBRO",
+        "NOVEMBRO",
+        "DEZEMBRO",
+    ]
+
+    try:
+        wb = load_workbook(arquivo, data_only=True)
+        total = 0.0
+        abas_com_dados = []
+
+        for mes in MESES_ORDEM:
+            if mes in wb.sheetnames:
+                ws = wb[mes]
+                if ws.max_row > 1:  # Tem dados além do header
+                    abas_com_dados.append(mes)
+                    for row in ws.iter_rows(
+                        min_row=2, max_col=coluna, values_only=True
+                    ):
+                        if len(row) >= coluna and row[coluna - 1] is not None:
+                            try:
+                                val = float(str(row[coluna - 1]).replace(",", "."))
+                                total += abs(val)  # Soma valor absoluto
+                            except (ValueError, TypeError):
+                                pass
+
+        print(
+            f"soma_coluna({arquivo}, col{coluna}): abas_com_dados={abas_com_dados}, total={total}"
+        )
+        wb.close()
+        return total
+    except Exception as e:
+        print(f"ERRO soma_coluna({arquivo}): {e}")
+        return 0
+
+
+def garantir_total_geral(arquivo):
+    """Cria/atualiza aba TOTAL GERAL com somas das mensais"""
+    if not os.path.exists(arquivo):
+        return
+
+    wb = load_workbook(arquivo)
+    if "TOTAL GERAL" not in wb.sheetnames:
+        wb.create_sheet("TOTAL GERAL")
+
+    # Recalcula somas se necessário (simplificado)
+    ws = wb["TOTAL GERAL"]
+    ws["C2"] = soma_coluna(arquivo, 3)  # P&R total
+    ws["F2"] = soma_coluna(arquivo, 6)  # CSS total
 
     wb.save(arquivo)
     wb.close()
@@ -377,98 +462,49 @@ def api_tabela():
 @app.route("/resumo")
 @login_required
 def resumo():
-    import os
-    from openpyxl import load_workbook
-
-    MESES_VALIDOS = [
-        "JANEIRO",
-        "FEVEREIRO",
-        "MARÇO",
-        "ABRIL",
-        "MAIO",
-        "JUNHO",
-        "JULHO",
-        "AGOSTO",
-        "SETEMBRO",
-        "OUTUBRO",
-        "NOVEMBRO",
-        "DEZEMBRO",
-    ]
-
-    def soma_coluna(arquivo, coluna):
-        total = 0
-
-        try:
-            # Verificação segura do arquivo
-            if not arquivo:
-                print("Arquivo inválido:", arquivo)
-                return 0
-
-            if not os.path.exists(arquivo):
-                print("Arquivo não encontrado:", arquivo)
-                return 0
-
-            wb = load_workbook(arquivo, data_only=True)
-
-            print("Arquivo aberto:", arquivo)
-            print("Abas encontradas:", wb.sheetnames)
-
-            for aba in wb.sheetnames:
-
-                # Aceita nomes como MAIO, MAIO5, JUNHO6 etc.
-                if not any(aba.upper().startswith(mes) for mes in MESES_VALIDOS):
-                    continue
-
-                ws = wb[aba]
-
-                for r in range(2, ws.max_row + 1):
-                    v = ws.cell(row=r, column=coluna).value
-
-                    if v not in (None, ""):
-                        try:
-                            total += float(str(v).replace(",", "."))
-                        except Exception as e:
-                            print(
-                                f"Erro ao converter valor '{v}' na aba {aba}, linha {r}:",
-                                e
-                            )
-
-            wb.close()
-
-        except Exception as e:
-            print("Erro ao processar arquivo:", arquivo)
-            print("Detalhes:", e)
-
-        return total
+    # Garante arquivos e TOTAL GERAL
+    garantir_arquivo(ARQUIVO_SIG)
+    garantir_arquivo(ARQUIVO_SSH)
+    garantir_total_geral(ARQUIVO_SIG)
+    garantir_total_geral(ARQUIVO_SSH)
 
     try:
-        # Totais
         total_sig_pr = soma_coluna(ARQUIVO_SIG, 3)
         total_ssh_pr = soma_coluna(ARQUIVO_SSH, 3)
         total_sig_css = soma_coluna(ARQUIVO_SIG, 6)
 
-        resultado = int(total_sig_pr - total_ssh_pr)
+        resultado = int(total_sig_pr or 0) - int(total_ssh_pr or 0)
+
+        print(
+            f"SIG P&R detalhado: arquivos={os.path.exists(ARQUIVO_SIG)}, total={total_sig_pr}"
+        )
+        print(f"SIG CSS detalhado: total={total_sig_css}")
+        print(
+            f"SSH P&R detalhado: arquivos={os.path.exists(ARQUIVO_SSH)}, total={total_ssh_pr}"
+        )
+        print(f"RESULTADO final: {resultado}")
 
         return render_template(
             "resumo.html",
-            total_sig=int(total_sig_pr),
-            total_ssh=int(total_ssh_pr),
-            total_css=int(total_sig_css),
+            total_sig=int(total_sig_pr or 0),
+            total_ssh=int(total_ssh_pr or 0),
+            total_css=int(total_sig_css or 0),
             resultado=resultado,
         )
-
     except Exception as e:
-        print("Erro geral na rota /resumo:")
-        print(e)
+        print(f"ERRO /resumo: {str(e)}")
+    import traceback
 
-        # fallback para evitar erro 500
-        return render_template(
-            "resumo.html",
-            total_sig=0,
-            total_ssh=0,
-            total_css=0,
-            resultado=0,
-        )
+    print(f"ERRO DETALHADO /resumo: {str(e)}")
+    print(traceback.format_exc())
+    flash(f"Erro no resumo: {str(e)}")
+    return (
+        render_template(
+            "resumo.html", total_sig=0, total_ssh=0, total_css=0, resultado=0
+        ),
+        500,
+    )
+
 
 # ================= API TOTAL GERAL =================
 
@@ -514,6 +550,9 @@ def api_mes_total_geral():
     soma_css_peso_anual = 0
     soma_css_anual = 0
 
+    soma_css_anual = 0
+    soma_css_peso_anual = 0
+
     for mes in MESES_ORDEM:
         if mes not in wb.sheetnames:
             continue
@@ -525,24 +564,30 @@ def api_mes_total_geral():
         soma_css_peso_mes = 0
 
         for row in ws.iter_rows(min_row=2, values_only=True):
+            if len(row) < 7:
+                continue
             pr = row[2]
             css = row[5]
             percent = row[6]
 
-            if pr:
+            if pr is not None and str(pr).strip():
                 try:
-                    total_pr_mes += float(pr)
+                    total_pr_mes += float(str(pr).replace(",", "."))
                 except:
                     pass
 
-            if css and percent:
+            if (
+                css is not None
+                and percent is not None
+                and str(css).strip()
+                and str(percent).strip()
+            ):
                 try:
-                    css = float(css)
-                    percent = float(percent)
-
-                    if css > 0:
-                        soma_css_mes += css
-                        soma_css_peso_mes += css * percent
+                    css_val = float(str(css).replace(",", "."))
+                    percent_val = float(str(percent).replace(",", "."))
+                    if css_val > 0:
+                        soma_css_mes += css_val
+                        soma_css_peso_mes += css_val * percent_val
                 except:
                     pass
 
@@ -587,13 +632,9 @@ def api_mes_total_geral():
     return jsonify(resultado)
 
 
-# ================= CONFIG DOWNLOAD =================
-
+# ================= DOWNLOAD (PERFEITO SEM LOGIN) =================
 PASTA_DOWNLOAD = "downloads"
 os.makedirs(PASTA_DOWNLOAD, exist_ok=True)
-
-
-# ================= ROTA INFO =================
 
 
 @app.route("/api/info", methods=["POST"])
@@ -604,213 +645,127 @@ def info_video():
         if not url:
             return jsonify({"erro": "URL vazia"})
 
+        # ✅ Config otimizada para TODAS plataformas
         ydl_opts = {
             "quiet": True,
             "skip_download": True,
-            "cookiesfrombrowser": ["chrome"],
+            "extract_flat": False,  # Pega info completa
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
-            titulo = info.get("title", "Sem título")
             duracao = info.get("duration", 0) or 0
-            tamanho_video = (
-                f"{info.get('filesize', 0)/1024/1024:.1f} MB"
-                if info.get("filesize")
-                else "N/D"
-            )
-            tamanho_audio = (
-                f"{info.get('filesize', 0)/10/1024/1024:.1f} MB"
-                if info.get("filesize")
-                else "N/D"
-            )
-
-            # Thumbnail melhorado para IG/TikTok/YouTube
-            thumbnails = info.get("thumbnails", [])
-            thumbnail = (
-                thumbnails[0].get("url")
-                if thumbnails
-                else info.get("thumbnail") or None
-            )
+            filesize = info.get("filesize", 0) or info.get("filesize_approx", 0)
 
             return jsonify(
                 {
-                    "titulo": titulo,
+                    "titulo": info.get("title", "Sem título")[:100],
                     "duracao": f"{int(duracao//60):02d}:{int(duracao%60):02d}",
-                    "tamanho_video": tamanho_video,
-                    "tamanho_audio": tamanho_audio,
-                    "thumbnail": thumbnail,
+                    "tamanho_video": (
+                        f"{filesize/1024/1024:.1f} MB" if filesize else "N/D"
+                    ),
+                    "tamanho_audio": (
+                        f"{filesize/10/1024/1024:.1f} MB" if filesize else "N/D"
+                    ),
+                    "thumbnail": info.get("thumbnail")
+                    or info.get("thumbnails", [{}])[0].get("url"),
                 }
             )
-
     except Exception as e:
         print("ERRO INFO:", e)
-        return jsonify({"erro": str(e)})
+        return jsonify({"erro": str(e)}), 500
 
-        # ================= ROTA DOWNLOAD =================
 
-        tipo = request.json.get("tipo")
-        nome = str(uuid.uuid4())
-
-        if tipo == "audio":
-            caminho = os.path.join(PASTA_DOWNLOAD, f"{nome}.mp3")
-            cmd = [
-                "python",
-                "-m",
-                "yt_dlp",
-                "-x",
-                "--audio-format",
-                "mp3",
-                "--newline",
-                "--progress",
-                "-o",
-                caminho,
-                url,
-            ]
-        else:
-            caminho = os.path.join(PASTA_DOWNLOAD, f"{nome}.mp4")
-            cmd = [
-                "python",
-                "-m",
-                "yt_dlp",
-                "-f",
-                "best[ext=mp4]",
-                "--newline",
-                "--progress",
-                "-o",
-                caminho,
-                url,
-            ]
-
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            universal_newlines=True,
-        )
-
-        downloaded = 0
-        total = 0
-        for line in iter(process.stdout.readline, ""):
-            yield f"data: {line}\n\n"
-            if "[download]" in line:
-                import re
-
-                m = re.search(r"(\d+\.?\d*)%", line)
-                if m:
-                    percent = float(m.group(1))
-                    yield f"data: {{percent: {percent}}}\n\n"
-
-            if "[Downloaded" in line or "has already been downloaded" in line:
-                break
-
-        process.wait()
-
-        if process.returncode != 0 or not os.path.exists(caminho):
-            yield "data: {error: true}\n\n"
-            return
-
-        # Cleanup after delay
-        import threading
-
-        def cleanup():
-            time.sleep(30)
-            if os.path.exists(caminho):
-                os.remove(caminho)
-
-        threading.Thread(target=cleanup, daemon=True).start()
-
-        yield f"data: {{complete: true, path: '{caminho}'}}\n\n"
-
+@app.route("/api/download", methods=["POST"])
+def api_download():
     try:
         data = request.get_json()
-        url = data.get("url")
-        tipo = data.get("tipo", "video")
+        url, tipo = data.get("url"), data.get("tipo", "video")
+        if not url:
+            return jsonify({"erro": "URL obrigatória"}), 400
 
         nome_uuid = str(uuid.uuid4())
         extensao = "mp3" if tipo == "audio" else "mp4"
         caminho = os.path.join(PASTA_DOWNLOAD, f"{nome_uuid}.{extensao}")
 
-        # yt-dlp cmd
+        # ✅ CMD PERFEITO para todas plataformas
+        cmd_base = [
+            "python",
+            "-m",
+            "yt_dlp",
+            "--no-warnings",  # Menos spam
+            "--embed-subs",  # Legendas se tiver
+            "--embed-thumbnail",  # Thumbnail no vídeo
+            "-o",
+            caminho,
+        ]
+
         if tipo == "audio":
-            cmd = [
-                "python",
-                "-m",
-                "yt_dlp",
-                "--cookies-from-browser=chrome",
+            cmd = cmd_base + [
                 "-x",
                 "--audio-format",
                 "mp3",
-                "-o",
-                caminho,
+                "--audio-quality",
+                "192K",
                 url,
             ]
         else:
-            cmd = [
-                "python",
-                "-m",
-                "yt_dlp",
-                "--cookies-from-browser=chrome",
+            cmd = cmd_base + [
                 "-f",
-                "best[ext=mp4]/best",
-                "-o",
-                caminho,
+                "best[ext=mp4][height<=720]/best[height<=720]/best",
                 url,
             ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        print("Executando:", " ".join(cmd))  # Debug
 
-        if (
-            result.returncode != 0
-            or not os.path.exists(caminho)
-            or os.path.getsize(caminho) == 0
-        ):
-            return jsonify({"erro": result.stderr[:200] or "yt-dlp failed"}), 500
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
 
-        title = "video"
+        if result.returncode != 0:
+            return jsonify({"erro": result.stderr[:300] or "Falhou"}), 500
+
+        if not os.path.exists(caminho) or os.path.getsize(caminho) < 1000:
+            return jsonify({"erro": "Arquivo inválido ou muito pequeno"}), 500
+
+        # Nome bonito
         try:
-            ydl_opts = {"quiet": True}
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
                 info = ydl.extract_info(url, download=False)
-                title = re.sub(r"[^\w ]", "", info.get("title", "video")[:50])
+                title = re.sub(r"[^\w\s.-]", "", info.get("title", "video")[:50])
         except:
-            pass
+            title = "video"
 
+        # Cleanup
         def cleanup():
-            time.sleep(120)
+            time.sleep(180)
             if os.path.exists(caminho):
                 os.remove(caminho)
 
         threading.Thread(target=cleanup, daemon=True).start()
 
-        return send_file(
-            caminho,
-            as_attachment=True,
-            download_name=f"{title}.{extensao}",
-            mimetype="video/mp4" if tipo == "video" else "audio/mpeg",
+        return jsonify(
+            {
+                "success": True,
+                "path": caminho,
+                "download_name": f"{title}.{extensao}",
+                "tamanho": f"{os.path.getsize(caminho)/1024/1024:.1f} MB",
+            }
         )
+
+    except subprocess.TimeoutExpired:
+        return jsonify({"erro": "Timeout (vídeo muito grande)"}), 500
     except Exception as e:
+        print("ERRO DOWNLOAD:", e)
         return jsonify({"erro": str(e)}), 500
 
 
-# ================= OUTRAS ROTAS =================
-
-
+# ================= PAGINA DOWNLOAD =================
 @app.route("/download")
 def pagina_download():
     return render_template("download.html")
 
 
-@app.route("/api/download-final", methods=["POST"])
-def download_final():
-    data = request.json
-    path = data.get("path")
-    if not os.path.exists(path):
-        return "Arquivo não encontrado", 404
-    return send_file(path, as_attachment=True)
+# ================= OUTRAS ROTAS =================
 
 
 @app.route("/calculadora")
